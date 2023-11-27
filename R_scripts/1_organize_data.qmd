@@ -1,0 +1,88 @@
+---
+title: "1_organize_data"
+author: "Shayna A. Sura"
+format: html
+editor: source
+---
+
+# Organize SEAMAP Trawl Data for Analysis
+
+### load necessary packages
+
+```{r load packages}
+#| echo: false
+
+library(readr)
+library(here)
+library(tidyr)
+library(dplyr)
+library(ggplot2)
+
+# library(scales)
+# library(ggbeeswarm)
+
+```
+
+
+
+### function to load multiple .csv files at once
+```{r function to load csv files}
+#| echo: false
+
+mass.csv.in<-function(path){
+
+  #Retrieving the file names of csv files in designated path
+  temp<-dir(path=path, pattern="*.csv", full.names = FALSE) %>% substr(0,nchar(.)-4)
+
+  #Subtracting files from the list which are already loaded
+  temp<-setdiff(dir(path = path, pattern = ".csv"), ls(.GlobalEnv))
+
+  #Return message if no files need to be loaded
+  if(length(temp)==0){return("ALL FILES ALREADY LOADED")}
+
+  #Loading files
+  for (i in 1:length(temp)) {
+    assign(temp[i], read_csv(paste(path,temp[i], sep = "")), pos = ".GlobalEnv")
+    print("Files Loaded")
+  }
+}
+
+```
+
+
+
+### load SEAMAP trawl data
+
+```{r load SEAMAP trawl data from .csv files}
+#| echo: false
+
+mass.csv.in(path = "data/seamap_trawls/")
+
+```
+
+
+### exploring SEAMAP trawl data files
+
+```{r data exploration}
+#| echo: false
+#| eval: false
+
+
+glimpse(BGSREC.csv)
+summary(BGSREC.csv)
+
+head()
+unique()
+colnames()
+
+```
+
+
+
+## Cleaning the SEAMAP Trawl Data
+
+1. Filter out the invertebrates
+2. Link the data to year it was collected through the CRUISEID and YR variable in CRUISES.csv
+3. Link the data to a specific date it was collected through the CRUISEID and MO_DAY_YR variable in the STAREC.csv
+4. Add in the full scientific name for the fishes collected through the BIO_BGS variable in BGSREC to the CODE variable in the NEWBIOCODESBIG.csv and pull the TAXONOMIC and the Common_name variables.
+5. 
