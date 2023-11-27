@@ -1,3 +1,6 @@
+# data directory so data is not stored on GitHub
+data/
+
 # History files
 .Rhistory
 .Rapp.history
