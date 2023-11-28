@@ -71,6 +71,19 @@ mass.csv.in(path = "data/seamap_trawls/")
 glimpse(BGSREC.csv)
 summary(BGSREC.csv)
 
+unique(STAREC.csv$HAULVALUE)
+summary(STAREC.csv$HAULVALUE)
+
+
+which(STAREC.csv$HAULVALUE != "G")
+length(which(STAREC.csv$HAULVALUE != "G"))
+
+
+length(which(STAREC.csv$HAULVALUE == "B"))
+length(which(STAREC.csv$HAULVALUE == "G"))
+
+
+
 head()
 unique()
 colnames()
@@ -82,7 +95,20 @@ colnames()
 ## Cleaning the SEAMAP Trawl Data
 
 1. Filter out the invertebrates
+ - keep only those data with a CATEGORY value of 3
 2. Link the data to year it was collected through the CRUISEID and YR variable in CRUISES.csv
 3. Link the data to a specific date it was collected through the CRUISEID and MO_DAY_YR variable in the STAREC.csv
 4. Add in the full scientific name for the fishes collected through the BIO_BGS variable in BGSREC to the CODE variable in the NEWBIOCODESBIG.csv and pull the TAXONOMIC and the Common_name variables.
 5. 
+
+
+```{r data organizing}
+
+bio_data <- BGSREC.csv %>% 
+  filter(CATEGORY == 3)
+
+head(bio_data)
+
+```
+
+
