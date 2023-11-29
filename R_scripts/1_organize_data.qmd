@@ -17,6 +17,9 @@ library(here)
 library(tidyr)
 library(dplyr)
 library(ggplot2)
+library(lubridate)
+library(tidyverse)
+library(arsenal)
 
 # library(scales)
 # library(ggbeeswarm)
@@ -94,20 +97,63 @@ colnames()
 
 ## Cleaning the SEAMAP Trawl Data
 
-1. Filter out the invertebrates
- - keep only those data with a CATEGORY value of 3
-2. Link the data to year it was collected through the CRUISEID and YR variable in CRUISES.csv
-3. Link the data to a specific date it was collected through the CRUISEID and MO_DAY_YR variable in the STAREC.csv
-4. Add in the full scientific name for the fishes collected through the BIO_BGS variable in BGSREC to the CODE variable in the NEWBIOCODESBIG.csv and pull the TAXONOMIC and the Common_name variables.
+1. Filter out the invertebrates - keep only those data with a CATEGORY value of 3.
+2. Add in the full scientific name for the fishes collected through the BIO_BGS variable in BGSREC to the CODE variable in the NEWBIOCODESBIG.csv and pull the TAXONOMIC and the Common_name variables.
+3. Link the data to year it was collected through the CRUISEID and YR variable in CRUISES.csv
+4. Link the data to a specific date it was collected through the CRUISEID and MO_DAY_YR variable in the STAREC.csv
 5. 
 
 
 ```{r data organizing}
 
 bio_data <- BGSREC.csv %>% 
-  filter(CATEGORY == 3)
+  filter(CATEGORY == 3) %>% 
+  select(-CNT, -SAMPLE_BGS, -NODC_BGS, -TAXONID, -INVRECID)
 
-head(bio_data)
+taxa_names <- NEWBIOCODESBIG.csv %>% 
+  select(Key1, TAXONOMIC, CODE, common_name) %>% 
+  rename(BIO_BGS = CODE)
+
+bio_data2 <- bio_data %>% 
+  left_join(taxa_names, join_by(BIO_BGS))
+
+which(duplicated(taxa_names$BIO_BGS))
+anyDuplicated(taxa_names$BIO_BGS)
+# 275 and 10015 are duplicated BIO_BGS codes in the taxa_names dataframe
+
+dup_taxa_names <- taxa_names %>% 
+  filter(Key1 == "275",
+         Key1 == "10015")
+
+taxa_names[275,]
+taxa_names[10015,]
+
+dup_1 <- taxa_names %>% 
+  filter(BIO_BGS == 170026003)
+
+dup_1
+
+filter(taxa_names, BIO_BGS == 170026003)
+filter(taxa_names, BIO_BGS == 170026004)
+filter(taxa_names, BIO_BGS == 170026002)
+filter(taxa_names, TAXONOMIC == "ANTHIAS WOODSI")
+filter(taxa_names, TAXONOMIC == "ANTHIAS TENUIS")
+
+
+taxa_names[10015,]
+#BIO_BGS is 300000000
+
+dup_2 <- taxa_names %>% 
+  filter(BIO_BGS == 300000000)
+
+dup_2
+
+
+filter(bio_data2, BIO_BGS == 300000000)
+filter(bio_data2, BIO_BGS == 170026003)
+
+
+head(bio_data2)
 
 ```
 
