@@ -12,13 +12,14 @@ editor: source
 ```{r load packages}
 #| echo: false
 
-library(readr)
-library(here)
-library(tidyr)
-library(dplyr)
-library(ggplot2)
-library(lubridate)
-library(tidyverse)
+library(tidyverse) # includes and loads the packages listed below
+# library(readr)
+# library(tidyr)
+# library(dplyr)
+# library(ggplot2)
+# library(lubridate)
+
+library(here) # helps with paths for files
 library(arsenal)
 
 # library(scales)
@@ -26,9 +27,8 @@ library(arsenal)
 
 ```
 
-
-
 ### function to load multiple .csv files at once
+
 ```{r function to load csv files}
 #| echo: false
 
@@ -52,8 +52,6 @@ mass.csv.in<-function(path){
 
 ```
 
-
-
 ### load SEAMAP trawl data
 
 ```{r load SEAMAP trawl data from .csv files}
@@ -62,7 +60,6 @@ mass.csv.in<-function(path){
 mass.csv.in(path = "data/seamap_trawls/")
 
 ```
-
 
 ### exploring SEAMAP trawl data files
 
@@ -93,68 +90,125 @@ colnames()
 
 ```
 
-
-
 ## Cleaning the SEAMAP Trawl Data
 
-1. Filter out the invertebrates - keep only those data with a CATEGORY value of 3.
-2. Add in the full scientific name for the fishes collected through the BIO_BGS variable in BGSREC to the CODE variable in the NEWBIOCODESBIG.csv and pull the TAXONOMIC and the Common_name variables.
-3. Link the data to year it was collected through the CRUISEID and YR variable in CRUISES.csv
-4. Link the data to a specific date it was collected through the CRUISEID and MO_DAY_YR variable in the STAREC.csv
-5. 
+1.  NEWBIOCODESBIG.csv file has 2 biocodes/codes that are duplicated for different taxa.
 
+-   CODES: 170026003 & 300000000
+-   I am ignoring the 300000000 code because that's for invertebrates and not applicable for my research question.
+-   I am changing one occurrence of 17002600***3*** to 17002600***4*** to match the species scientific name with the other occurrence of 170026004.
+    -   170026003 is listed for both ANTHIAS WOODSI and ANTHIAS TENUIS
+    -   170026004 is also listed for ANTHIAS WOODSI, but there's no other biocode associated with ANTHIAS TENUIS.
+-   So I am changing the occurrence of 170026003 that says ANTHIAS WOODSI to the biocode 170026004.
+-   Also, the other occurrence of ANTHIAS WOODSI does not have a common name associated with it, but there is a common name, so I'm going to add that in so both occurrences of ANTHIAS WOODSI will match now. I am also changing the Key1 ID values to the first Key1 value associated with ANTHIAS WOODSI, which is Key1 = 504.
+-   I am making these changes to a new data frame (taxa_names), and keeping the NEWBIOCODESBIG.csv file AS IS.
 
-```{r data organizing}
+```{r taxanomic names data cleaning}
 
-bio_data <- BGSREC.csv %>% 
-  filter(CATEGORY == 3) %>% 
-  select(-CNT, -SAMPLE_BGS, -NODC_BGS, -TAXONID, -INVRECID)
-
+# make a new df to easily join with the biological data and to remove extra columns I don't need.
 taxa_names <- NEWBIOCODESBIG.csv %>% 
   select(Key1, TAXONOMIC, CODE, common_name) %>% 
   rename(BIO_BGS = CODE)
 
-bio_data2 <- bio_data %>% 
-  left_join(taxa_names, join_by(BIO_BGS))
 
+# check for duplicated entries for the Biocodes, which will create extra entries when I join the scientific names to the biological data
 which(duplicated(taxa_names$BIO_BGS))
-anyDuplicated(taxa_names$BIO_BGS)
 # 275 and 10015 are duplicated BIO_BGS codes in the taxa_names dataframe
 
-dup_taxa_names <- taxa_names %>% 
-  filter(Key1 == "275",
-         Key1 == "10015")
 
-taxa_names[275,]
-taxa_names[10015,]
+# check the rows that have duplicates to retrieve the Biocodes for these duplicated rows
+taxa_names[275,] #BIO_BGS is 170026003
+taxa_names[10015,] #BIO_BGS is 300000000
 
-dup_1 <- taxa_names %>% 
-  filter(BIO_BGS == 170026003)
-
-dup_1
-
+# find all the entries with the biocodes that are duplicated and check surrounding biocodes 
 filter(taxa_names, BIO_BGS == 170026003)
-filter(taxa_names, BIO_BGS == 170026004)
-filter(taxa_names, BIO_BGS == 170026002)
+filter(taxa_names, BIO_BGS == 300000000) # this is for inverts so I'm going to ignore this now.
+
+# find all the entries with the two scientific names for this biocode to see if there's another biocode associated with either of these species
 filter(taxa_names, TAXONOMIC == "ANTHIAS WOODSI")
 filter(taxa_names, TAXONOMIC == "ANTHIAS TENUIS")
+# ANTHIAS WOODSI has 2 different biocodes assigned to it, while ANTHIS TENUIS only has 1.
+
+# check the surrounding biocodes (as another way to detect what's being duplicated and how to correct it)
+filter(taxa_names, BIO_BGS == 170026004)
+filter(taxa_names, BIO_BGS == 170026002)
+
+# change the entry for ANTHIAS WOODSI that has the wrong biocode associated with it
+taxa_names <- taxa_names %>% 
+  mutate(BIO_BGS = case_when((BIO_BGS == 170026003 & TAXONOMIC == "ANTHIAS WOODSI") ~ 170026004, .default = BIO_BGS),
+         common_name = case_when((BIO_BGS == 170026004 & TAXONOMIC == "ANTHIAS WOODSI") ~ "swallowtail bass", .default = common_name),
+         Key1 = case_when((BIO_BGS == 170026004 & TAXONOMIC == "ANTHIAS WOODSI") ~ 504, .default = Key1))
+
+# double checking that the above mutate worked as expected.
+filter(taxa_names, TAXONOMIC == "ANTHIAS WOODSI")
+filter(taxa_names, BIO_BGS == 170026003)
 
 
-taxa_names[10015,]
-#BIO_BGS is 300000000
+# check for duplicated entries for the Biocodes, which will create extra entries when I join the scientific names to the biological data
+which(duplicated(taxa_names$BIO_BGS))
+# 10015 and 10331 are duplicated BIO_BGS codes in the taxa_names dataframe
 
-dup_2 <- taxa_names %>% 
-  filter(BIO_BGS == 300000000)
-
-dup_2
-
-
-filter(bio_data2, BIO_BGS == 300000000)
-filter(bio_data2, BIO_BGS == 170026003)
-
-
-head(bio_data2)
+taxa_names[10331,] #this is the updated entry for ANTHIAS WOODSI, which is now duplicated because we made the two entries match each other exactly. This will be okay for the join below.
 
 ```
 
 
+
+
+```{r subsetting CRUISES and STAREC data}
+
+# subset CRUISES
+year_data <- CRUISES.csv %>% 
+  select(CRUISEID, YR)
+
+# checking the values in the YR column to make sure there aren't any weird ones that might need to be fixed
+unique(year_data$YR)
+length(unique(year_data$YR))
+
+# subset STAREC
+small_starec_data <- STAREC.csv %>% 
+  select(STATIONID, CRUISEID, CRUISE_NO, DEPTH_SSTA, MO_DAY_YR, DECSLAT, DECSLON, DECELAT, DECELON)
+
+```
+
+
+
+## Organizing SEAMAP Trawl Data
+
+1.  Filter out the invertebrates - keep only those data with a CATEGORY value of 3.
+2.  Add in the full scientific name for the fishes collected through the BIO_BGS variable in BGSREC to the CODE variable in the NEWBIOCODESBIG.csv and pull the TAXONOMIC and the Common_name variables.
+3.  Link the data to year it was collected through the CRUISEID and YR variable in CRUISES.csv
+4.  Link the data to a specific date it was collected through the CRUISEID and MO_DAY_YR variable in the STAREC.csv
+5.  
+
+```{r data organizing}
+
+
+# 1. filter out invertebrates and remove extra columns I don't need from BGSREC.csc
+bio_data <- BGSREC.csv %>% 
+  filter(CATEGORY == 3) %>% 
+  select(-CNT, -SAMPLE_BGS, -NODC_BGS, -TAXONID, -INVRECID)
+
+# 2. add the full scientific name for the fishes
+bio_data <- bio_data %>% 
+  left_join(taxa_names, join_by(BIO_BGS))
+
+# # check the bio_data df for the duplicated biocodes from above (ensure the issue was resolved)
+# filter(bio_data, BIO_BGS == 300000000)
+# filter(bio_data, BIO_BGS == 170026003)
+# filter(bio_data, BIO_BGS == 170026004) # interesting that this fish species wasn't even found in any of the trawls.
+# filter(bio_data, GENUS_BGS == "ANTHIAS")
+
+
+# 3. add the year for the biological catch data
+# HOW DO I DO THIS JOIN WITHOUT DUPLICATING THE CRUISEID and CRUISE_NO columns??
+# Rather, after joining, I should check that the CRUISEID and CRUISE_NO columns match up and then I can deselect them and rename the ones I want to keep
+bio_data <- bio_data %>% 
+  left_join(year_data, join_by(CRUISEID)) %>% 
+  left_join(small_starec_data, join_by(STATIONID))
+
+
+
+# head(bio_data)
+
+```
