@@ -1,0 +1,104 @@
+---
+title: "2_map_data"
+author: "Shayna A. Sura"
+format: html
+editor: source
+---
+
+
+
+```{r load packages}
+#| echo: false
+
+library(tidyverse) # includes and loads the packages listed below
+# library(readr)
+# library(tidyr)
+# library(dplyr)
+# library(ggplot2)
+# library(lubridate)
+
+library(here) # helps with paths for files
+
+# libraries for spatial data & animating it...
+library(maps)
+library(gganimate)
+library(gifski) # for gif output
+library(av) # for video output
+
+# not sure I need these libraries for what I'm trying to do.
+# library(terra)
+# library(geodata)
+# library(predicts)
+
+```
+
+
+## Accessing objects from other Quarto documents in this R Project
+
+```{r accessing data from 1_organize_data QMD file}
+
+
+
+```
+
+
+## obtain bounding coordinates for making maps
+
+```{r}
+
+# Determine geographic extent of our data
+# use ceiling() and floor() to round up and down to the nearest integer
+
+# max_lat <- ceiling(max(obs_data$latitude))
+# min_lat <- floor(min(obs_data$latitude))
+# max_lon <- ceiling(max(obs_data$longitude))
+# min_lon <- floor(min(obs_data$longitude))
+
+```
+
+
+
+```{r obtain GoM map}
+
+
+gulf_of_mexico_info <- map_data("usa", region = ".")
+
+base_map <- ggplot(data = gulf_of_mexico_info,
+                   mapping = aes (x = long, y = lat, group = group)) +
+  geom_polygon() +
+  coord_quickmap() 
+
+
+base_map
+
+
+## Use ggmap instead?
+
+
+```
+
+
+
+```{r}
+
+
+## writing some code down that will be helpful for mapping the SEAMAP trawl data
+
+
+# Determine geographic extent of our data
+# use ceiling() and floor() to round up and down to the nearest integer
+
+max_lat <- ceiling(max(obs_data$latitude))
+min_lat <- floor(min(obs_data$latitude))
+max_lon <- ceiling(max(obs_data$longitude))
+min_lon <- floor(min(obs_data$longitude))
+
+
+# Store boundaries in a single extent object
+geographic_extent <- ext(x = c(min_lon, max_lon, min_lat, max_lat))
+
+
+```
+
+
+
