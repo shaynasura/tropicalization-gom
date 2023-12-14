@@ -195,7 +195,7 @@ bio_data <- bio_data %>%
 # filter(bio_data, GENUS_BGS == "ANTHIAS")
 
 
-# 3. and 4. add the year for the biological catch data and add the specific month an day.
+# 3. and 4. add the year for the biological catch data and add the specific month and day.
 bio_data <- bio_data %>% 
   left_join(year_data, join_by(CRUISEID)) %>% 
   left_join(small_starec_data, join_by(STATIONID))
@@ -205,7 +205,7 @@ bio_data <- bio_data %>%
 length(which((bio_data$CRUISEID.x == bio_data$CRUISEID.y) == "TRUE"))
 length(which((bio_data$CRUISEID.x == bio_data$CRUISEID.y) == "FALSE")) # these 2 columns match
 
-## the CRUISE_NO variable from STAREC.csv -> small_starec_data was stored aa character values instead of numeric. Need to convert the CRUISE_NO variable to numeric for it to match the bio_data CRUISE_NO variable.
+## the CRUISE_NO variable from STAREC.csv -> small_starec_data was stored as character values instead of numeric. Need to convert the CRUISE_NO variable to numeric for it to match the bio_data CRUISE_NO variable.
 length(which((bio_data$CRUISE_NO.x == as.numeric(bio_data$CRUISE_NO.y)) == "TRUE"))
 length(which((bio_data$CRUISE_NO.x == as.numeric(bio_data$CRUISE_NO.y)) == "FALSE")) # these 2 columns match
 
@@ -272,6 +272,13 @@ bad_hauls_2 <- bio_data %>%
 
 
 
+```{r export clean bio_data}
+
+write_csv(bio_data, file = "data/clean_data/bio_data.csv")
+
+getwd()
+
+```
 
 
 
