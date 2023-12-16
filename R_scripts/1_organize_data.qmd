@@ -56,8 +56,11 @@ mass.csv.in<-function(path){
 
 ```{r load SEAMAP trawl data from .csv files}
 #| echo: false
+#| message: false
 
 mass.csv.in(path = "data/seamap_trawls/")
+
+# CRUISES.csv <- read_csv("data/seamap_trawls/CRUISES.csv")
 
 ```
 
@@ -70,6 +73,13 @@ mass.csv.in(path = "data/seamap_trawls/")
 
 glimpse(BGSREC.csv)
 summary(BGSREC.csv)
+
+
+glimpse(STAREC.csv)
+glimpse(CRUISES.csv)
+
+
+sort(unique(CRUISES.csv$YR))
 
 unique(STAREC.csv$HAULVALUE)
 summary(STAREC.csv$HAULVALUE)
@@ -159,8 +169,9 @@ year_data <- CRUISES.csv %>%
   select(CRUISEID, YR)
 
 # checking the values in the YR column to make sure there aren't any weird ones that might need to be fixed
-unique(year_data$YR)
-length(unique(year_data$YR))
+unique(year_data$YR) # data from 1982 - 2023
+length(unique(year_data$YR)) # 42 years of data
+
 
 # subset STAREC
 small_starec_data <- STAREC.csv %>% 
@@ -195,19 +206,63 @@ bio_data <- bio_data %>%
 # filter(bio_data, GENUS_BGS == "ANTHIAS")
 
 
+
 # 3. and 4. add the year for the biological catch data and add the specific month and day.
 bio_data <- bio_data %>% 
   left_join(year_data, join_by(CRUISEID)) %>% 
   left_join(small_starec_data, join_by(STATIONID))
 
 
+
+## checking to make sure the bio_data dataframe contains data up to 2023
+max(bio_data$CRUISEID.x)
+max(BGSREC.csv$CRUISEID)
+
+
+# ## looking at the 2021, 2022, and 2023 data to figure out why it's not showing up in the bio_data later one...
+# data_2023 <- year_data %>% 
+#   filter(YR == "2023"| YR == "2022" |YR == "2021" | YR == "2020")
+# 
+# 
+# small_starec_2023 <- small_starec_data %>% 
+#   filter(MO_DAY_YR > "2023-01-01")
+# 
+# cruises_1129_1130_check <-  small_starec_data %>% 
+#   filter(CRUISEID > 1127)
+# 
+# 
+# small_starec_2021 <- small_starec_data %>% 
+#   filter(MO_DAY_YR > "2021-01-01")
+# 
+# bio_data_2023 <- bio_data %>% 
+#   filter(CRUISEID > 1100)
+# 
+# max(bio_data$CRUISEID.x)
+# max(BGSREC.csv$CRUISEID)
+
+
+
+
+
 ## check that the CRUISEID and CRUISE_NO columns from the bio_data and the small_starec_data match
 length(which((bio_data$CRUISEID.x == bio_data$CRUISEID.y) == "TRUE"))
 length(which((bio_data$CRUISEID.x == bio_data$CRUISEID.y) == "FALSE")) # these 2 columns match
 
-## the CRUISE_NO variable from STAREC.csv -> small_starec_data was stored as character values instead of numeric. Need to convert the CRUISE_NO variable to numeric for it to match the bio_data CRUISE_NO variable.
-length(which((bio_data$CRUISE_NO.x == as.numeric(bio_data$CRUISE_NO.y)) == "TRUE"))
-length(which((bio_data$CRUISE_NO.x == as.numeric(bio_data$CRUISE_NO.y)) == "FALSE")) # these 2 columns match
+# ## the CRUISE_NO variable from STAREC.csv -> small_starec_data was stored as character values instead of numeric. Need to convert the CRUISE_NO variable to numeric for it to match the bio_data CRUISE_NO variable.
+# length(which((bio_data$CRUISE_NO.x == as.numeric(bio_data$CRUISE_NO.y)) == "TRUE"))
+# length(which((bio_data$CRUISE_NO.x == as.numeric(bio_data$CRUISE_NO.y)) == "FALSE")) # these 2 columns match
+# ## december 15, 2023 - why doesn't these 2 columns match anymore??
+
+# sort(unique(bio_data$CRUISE_NO.x))
+# sort(unique(bio_data$CRUISE_NO.y))
+# summary(bio_data)
+
+## December 15, 2023 - after reloading these data, don't need to convert one column to numeric. They are both character columns now, and they do match each other.
+length(which((bio_data$CRUISE_NO.x == (bio_data$CRUISE_NO.y)) == "TRUE"))
+length(which((bio_data$CRUISE_NO.x == (bio_data$CRUISE_NO.y)) == "FALSE"))
+
+
+
 
 ## remove the extra CRUISEID and CRUISE_NO columns to streamline data table
 bio_data <- bio_data %>% 
@@ -230,16 +285,20 @@ haul_values <- STAREC.csv %>%
 bio_data <- bio_data %>% 
   left_join(haul_values, join_by(STATIONID))
 
+
+## checking the amounts of the different HAULVALUE codes.
 unique(bio_data$HAULVALUE)
-length(which(bio_data$HAULVALUE == "G"))
-length(which(bio_data$HAULVALUE == "B"))
-length(which(bio_data$HAULVALUE == "NA"))
+length(which(bio_data$HAULVALUE == "G"))   # 361,748 
+length(which(bio_data$HAULVALUE == "B"))   # 41
+length(which(is.na(bio_data$HAULVALUE) == TRUE))   # 221,882
 
-bad_hauls <- bio_data %>% 
-  filter(HAULVALUE != "G")
+361748+41+221882  # sum is 583,671 which is the length of bio_data
 
-bad_hauls_2 <- bio_data %>% 
-  filter(HAULVALUE != "G" | is.na(HAULVALUE) == TRUE)
+# bad_hauls <- bio_data %>% 
+#   filter(HAULVALUE != "G")
+# 
+# bad_hauls_2 <- bio_data %>% 
+#   filter(HAULVALUE != "G" | is.na(HAULVALUE) == TRUE)
 
 
 
@@ -276,7 +335,7 @@ bad_hauls_2 <- bio_data %>%
 
 write_csv(bio_data, file = "data/clean_data/bio_data.csv")
 
-getwd()
+
 
 ```
 
@@ -313,21 +372,21 @@ ggplot(anchoa_data, aes(x = YR, y = CNTEXP, color = TAXONOMIC)) +
 
 ```{r}
 
-library(leaflet)
-
-
-# how can I filter out the excess data from bio_data so I only have one set of coordinates for each trawl station?
-## - the small_starec_data only has 1 row for each STATIONID.
-
-trawl_locations <- inner_join(x = small_starec_data, y = bio_data, by = join_by(STATIONID))
-# hmm this is still giving me ALL the rows....
-# need to select out the unnecessary columns from bio_data?
-
-
-trawl_locations_2 <- (small_starec_data$STATIONID == bio_data$STATIONID) == TRUE # this doesn't work...
-
-
-leaflet(bio_data)
+# library(leaflet)
+# 
+# 
+# # how can I filter out the excess data from bio_data so I only have one set of coordinates for each trawl station?
+# ## - the small_starec_data only has 1 row for each STATIONID.
+# 
+# trawl_locations <- inner_join(x = small_starec_data, y = bio_data, by = join_by(STATIONID))
+# # hmm this is still giving me ALL the rows....
+# # need to select out the unnecessary columns from bio_data?
+# 
+# 
+# trawl_locations_2 <- (small_starec_data$STATIONID == bio_data$STATIONID) == TRUE # this doesn't work...
+# 
+# 
+# leaflet(bio_data)
 
 ```
 

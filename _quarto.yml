@@ -1,5 +1,6 @@
 project: 
   title: "tropicalization-gom.Rproj"
   execute-dir: project
+  output-dir: output
   
 editor: source

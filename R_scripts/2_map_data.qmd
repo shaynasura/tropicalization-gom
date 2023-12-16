@@ -21,9 +21,11 @@ library(here) # helps with paths for files
 
 # libraries for spatial data & animating it...
 library(maps)
+library(ggmap)
 library(gganimate)
 library(gifski) # for gif output
 library(av) # for video output
+library(png)
 
 # not sure I need these libraries for what I'm trying to do.
 # library(terra)
@@ -50,9 +52,9 @@ library(av) # for video output
 
 ```{r reading in cleaned bio data}
 
-bio_data_2 <- read_csv(file = "data/clean_data/bio_data.csv")
+bio_data_clean <- read_csv(file = "data/clean_data/bio_data.csv")
 
-head(bio_data_2)
+head(bio_data_clean)
 
 ```
 
@@ -65,10 +67,10 @@ head(bio_data_2)
 # Determine geographic extent of our data
 # use ceiling() and floor() to round up and down to the nearest integer
 
-max_lat <- ceiling(max(bio_data_2$DECSLAT))
-min_lat <- floor(min(bio_data_2$DECSLAT))
-max_lon <- ceiling(max(bio_data_2$DECSLON))
-min_lon <- floor(min(bio_data_2$DECSLON))
+max_lat <- ceiling(max(bio_data_clean$DECSLAT))
+min_lat <- floor(min(bio_data_clean$DECSLAT))
+max_long <- ceiling(max(bio_data_clean$DECSLON))
+min_long <- floor(min(bio_data_clean$DECSLON))
 
 ```
 
@@ -79,21 +81,40 @@ min_lon <- floor(min(bio_data_2$DECSLON))
 
 gulf_of_mexico_info <- map_data("usa", region = ".")
 
-base_map2 <- ggplot(data = gulf_of_mexico_info,
+base_map <- ggplot(data = gulf_of_mexico_info,
                    mapping = aes (x = long, y = lat, group = group)) +
   geom_polygon() +
-  coord_quickmap(xlim = c(min_lon, max_lon),
+  coord_quickmap(xlim = c(min_long, max_long),
                  ylim = c(min_lat, max_lat)) +
   theme_void()
 
 
-base_map # I first tested this without giving limits for latitude and longitude
-base_map2
+base_map
+
 
 
 ## at some point, will probably want to include the land borders of Mexico in the base map. But the maps package doesn't have a map just for Mexico, so I would need to start with a world map...
 
 ## Use ggmap instead?
+
+## HAVEN'T GOTTEN THIS WORKING YET - NEED TO REGISTER FOR AN API KEY FOR GOOGLE MAPS
+## Google Maps requires this to be connected to a project and billing information.
+## Stadia Maps also requires an API key, but doesn't require a credit card to obtain one. It is free to use for non-commercial and evaluation use.
+### see help page for ?register_stadiamaps()
+
+
+
+# Gulf of Mexico coordinates pulled from viewing it on(url: https://www.openstreetmap.org/export#map=6/23.221/-88.978)
+
+base_map_alt <- get_map(location = c(left = -98.438,
+                                     bottom = 12.082,
+                                     right = -79.519,
+                                     top = 33.505),
+                        source = "stadia",
+                        # location = c(-90, 26),
+                        # location = "Gulf of Mexico",
+                        maptype = "stamen_watercolor",
+                        crop = FALSE)
 
 
 ```
@@ -102,7 +123,7 @@ base_map2
 ```{r subset of bio data to test mapping for 1 species overtime}
 
 
-lionfish_data <- bio_data_2 %>% 
+lionfish_data <- bio_data_clean %>% 
   filter(GENUS_BGS == "PTEROIS")
 
 head(lionfish_data)
@@ -112,24 +133,108 @@ head(lionfish_data)
 
 ```{r mapping lionfish data}
 
-lionfish_map <- base_map2 +
+lionfish_map <- base_map +
   geom_point(data = lionfish_data,
              aes(x = DECSLON,
                  y = DECSLAT,
                  group = YR,
-                 color = YR))
+                 color = YR)) +
+    scale_color_gradient(low = "#470887",
+                       high = "#F4D6FF",
+                       limits = c(1982, 2023),
+                       breaks = c(1982, 1992, 2002, 2012, 2022),
+                       labels = c(1982, 1992, 2002, 2012, 2022),
+                       name = "Year")
+
+                       # labels = c(1982, 1990, 2000, 2010, 2020, 2023))
 
 lionfish_map
 
 lionfish_map_animated <- lionfish_map +
   transition_time(YR) +
-  ggtitle('Year: {frame_time}',
+  ggtitle('Lionfish Presence
+          Year: {frame_time}',
           subtitle = 'Frame{frame} of {nframes}')
 
-num_years <- max(bio_data_2$YR - min(bio_data_2$YR)) + 1
-animate(lionfish_map_animated, nframes = num_years)
+# num_years <- max(bio_data_clean$YR - min(bio_data_clean$YR)) + 1
+# animate(lionfish_map_animated, nframes = num_years)
+
+num_years_alt <- max(lionfish_data$YR - min(lionfish_data$YR)) + 1
+animate(lionfish_map_animated,
+        nframes = num_years_alt,
+        fps = 2)
 
 lionfish_map_animated
+
+lionfish_map_shadow <- lionfish_map_animated +
+  shadow_mark() 
+# +
+  # scale_color_gradient(low = "#470887",
+  #                      high = "#F4D6FF")
+
+animate(lionfish_map_shadow,
+        nframes = num_years_alt,
+        fps = 2)
+
+anim_save("plots/lionfish_map1.gif")
+
+
+# to save as a video
+animate(lionfish_map_shadow,
+        nframes = num_years_alt,
+        fps = 2,
+        renderer = av_renderer())
+
+anim_save("plots/lionfish_map2.mpg")
+
+
+
+## need to add zeroes to the lionfish data for the years before it was detected and any years it wasn't detected when surveys were done.
+
+survey_years <- data.frame("YR" = sort(unique(bio_data_clean$YR)))
+
+survey_years
+
+
+## will doing a right join to the survey_years work for adding zeroes to the lionfish_data?? - yes! this can work to get the animation to show the blank years!
+
+lionfish_test <- lionfish_data %>% 
+  right_join(survey_years, join_by(YR))
+
+## I'll probably want to fill in some of the info for each species when I do this because otherwise all the other columns are blank except for year in the dataframe. So if I have more than one species in there, it might not work? not sure right now....
+
+test_lionfish_map <- base_map +
+  geom_point(data = lionfish_test,
+             na.rm = FALSE,
+             aes(x = DECSLON,
+                 y = DECSLAT,
+                 group = YR,
+                 color = YR)) +
+    scale_color_gradient(low = "#470887",
+                       high = "#F4D6FF",
+                       limits = c(1982, 2023),
+                       breaks = c(1982, 1992, 2002, 2012, 2022),
+                       labels = c(1982, 1992, 2002, 2012, 2022),
+                       name = "Year")
+
+                       # labels = c(1982, 1990, 2000, 2010, 2020, 2023))
+
+test_lionfish_map
+
+test_lionfish_map_shadow <- test_lionfish_map +
+  transition_time(YR) +
+  ggtitle('Lionfish Presence
+          Year: {frame_time}',
+          subtitle = 'Frame{frame} of {nframes}') +
+  shadow_mark()
+
+num_years_test <- max(lionfish_test$YR - min(lionfish_test$YR)) + 1
+
+animate(test_lionfish_map_shadow,
+        nframes = num_years_test,
+        fps = 2)
+
+anim_save("plots/lionfish_map3.gif")
 
 
 ```
