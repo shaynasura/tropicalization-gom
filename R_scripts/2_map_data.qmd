@@ -5,8 +5,6 @@ format: html
 editor: source
 ---
 
-
-
 ```{r load packages}
 #| echo: false
 
@@ -34,7 +32,6 @@ library(png)
 
 ```
 
-
 ## Accessing objects from other Quarto documents in this R Project???
 
 ### Not sure this is possoible to do. Might be better to export the clean data files from my other quarto document and then reload / import them into this quarto document...
@@ -49,7 +46,6 @@ library(png)
 
 ```
 
-
 ```{r reading in cleaned bio data}
 
 bio_data_clean <- read_csv(file = "data/clean_data/bio_data.csv")
@@ -57,8 +53,6 @@ bio_data_clean <- read_csv(file = "data/clean_data/bio_data.csv")
 head(bio_data_clean)
 
 ```
-
-
 
 ## obtain bounding coordinates for making maps
 
@@ -72,28 +66,61 @@ min_lat <- floor(min(bio_data_clean$DECSLAT))
 max_long <- ceiling(max(bio_data_clean$DECSLON))
 min_long <- floor(min(bio_data_clean$DECSLON))
 
+# geo_extent <- ext(x = c(min_long,
+#                         max_long,
+#                         min_lat,
+#                         max_lat))
+
 ```
-
-
 
 ```{r obtain GoM map}
 
 
 gulf_of_mexico_info <- map_data("usa", region = ".")
+world_base_map <- map_data("world", region = ".")
+usa_state_borders <- map_data("state", region = ".")
 
-base_map <- ggplot(data = gulf_of_mexico_info,
+# base_map <- ggplot(data = gulf_of_mexico_info,
+#                    mapping = aes (x = long, y = lat, group = group)) +
+#   geom_polygon() +
+#   coord_quickmap(xlim = c(min_long, max_long),
+#                  ylim = c(min_lat, max_lat)) +
+#   theme_void()
+
+
+base_map <- ggplot(data = world_base_map,
                    mapping = aes (x = long, y = lat, group = group)) +
-  geom_polygon() +
-  coord_quickmap(xlim = c(min_long, max_long),
-                 ylim = c(min_lat, max_lat)) +
-  theme_void()
+  geom_polygon(color = "black",
+               fill = "white") +
+  geom_polygon(data = usa_state_borders,
+               color = "black",
+               fill = "white") + 
+  # coord_quickmap(xlim = c(min_long, max_long),
+  #                ylim = c(min_lat, max_lat)) +
+  coord_quickmap(xlim = c(-97.7, -79.9),
+                 ylim = c(24, 31)) +
+  theme(panel.background = element_rect(fill = c("#CFEFFF")),
+        panel.border = element_rect(fill = NA,
+                                    color = "black")
+        ) +
+  labs(x = "Longitude",
+       y = "Latitude")
 
 
 base_map
 
+# theme_void().  #EBF9FF #B3E5FC
 
+#             (left = -98.438,
+#              bottom = 12.082,
+#              right = -79.519,
+#              top = 33.505)
 
-## at some point, will probably want to include the land borders of Mexico in the base map. But the maps package doesn't have a map just for Mexico, so I would need to start with a world map...
+```
+
+```{r alt way of obtaining base maps}
+#| echo: false
+#| eval: false
 
 ## Use ggmap instead?
 
@@ -101,24 +128,25 @@ base_map
 ## Google Maps requires this to be connected to a project and billing information.
 ## Stadia Maps also requires an API key, but doesn't require a credit card to obtain one. It is free to use for non-commercial and evaluation use.
 ### see help page for ?register_stadiamaps()
+### Okay, maybe I don't want to use ggmap as the services now seem to be pretty restricted for free use and I don't want to be come reliant on Google Maps or Stadia Maps.
 
 
 
 # Gulf of Mexico coordinates pulled from viewing it on(url: https://www.openstreetmap.org/export#map=6/23.221/-88.978)
 
-base_map_alt <- get_map(location = c(left = -98.438,
-                                     bottom = 12.082,
-                                     right = -79.519,
-                                     top = 33.505),
-                        source = "stadia",
-                        # location = c(-90, 26),
-                        # location = "Gulf of Mexico",
-                        maptype = "stamen_watercolor",
-                        crop = FALSE)
+# base_map_alt <- get_map(location = c(left = -98.438,
+#                                      bottom = 12.082,
+#                                      right = -79.519,
+#                                      top = 33.505),
+#                         # source = "osm",    # OSM is temporarily not supported
+#                         source = "stadia",
+#                         # location = c(-90, 26),
+#                         # location = "Gulf of Mexico",
+#                         maptype = "stamen_watercolor",
+#                         crop = FALSE)
 
 
 ```
-
 
 ```{r subset of bio data to test mapping for 1 species overtime}
 
@@ -128,23 +156,50 @@ lionfish_data <- bio_data_clean %>%
 
 head(lionfish_data)
 
-```
 
+## need to add zeroes to the lionfish data for the years before it was detected and any years it wasn't detected when surveys were done.
+survey_years <- data.frame("YR" = sort(unique(bio_data_clean$YR)))
+survey_years
+
+
+## Do a right join to the survey_years work for adding zeroes to the lionfish_data to get the animation to show the blank years.
+lionfish_data <- lionfish_data %>% 
+  right_join(survey_years, join_by(YR))
+
+
+## I'll probably want to fill in some of the info for each species when I do this because otherwise all the other columns are blank except for year in the dataframe. So if I have more than one species in there, it might not work? not sure right now....
+
+```
 
 ```{r mapping lionfish data}
 
 lionfish_map <- base_map +
   geom_point(data = lionfish_data,
+             na.rm = FALSE,
              aes(x = DECSLON,
                  y = DECSLAT,
                  group = YR,
-                 color = YR)) +
-    scale_color_gradient(low = "#470887",
+                 fill = YR),
+             size = 2.5,
+             shape = 21,
+             color = "black",
+             stroke = 0.5) +
+    scale_fill_gradient(low = "#470887",
                        high = "#F4D6FF",
                        limits = c(1982, 2023),
                        breaks = c(1982, 1992, 2002, 2012, 2022),
                        labels = c(1982, 1992, 2002, 2012, 2022),
-                       name = "Year")
+                       name = "Year") +
+  theme(text = element_text(family = "Times",
+                            size = 14),
+        plot.title = element_text(face = "bold"),
+        axis.title = element_text(size = 12,
+                                  face = "bold"),
+        axis.text = element_text(size = 10),
+        legend.title = element_text(size = 12,
+                                    face = "bold",
+                                    hjust = 0.5),
+        legend.text = element_text(size = 10))
 
                        # labels = c(1982, 1990, 2000, 2010, 2020, 2023))
 
@@ -154,114 +209,206 @@ lionfish_map_animated <- lionfish_map +
   transition_time(YR) +
   ggtitle('Lionfish Presence
           Year: {frame_time}',
-          subtitle = 'Frame{frame} of {nframes}')
+          subtitle = 'Frame {frame} of {nframes}') +
+  shadow_mark(alpha = 0.6,
+              color = "darkgray",
+              # fill = "lightgray",
+              size = 1.5)
 
 # num_years <- max(bio_data_clean$YR - min(bio_data_clean$YR)) + 1
 # animate(lionfish_map_animated, nframes = num_years)
 
-num_years_alt <- max(lionfish_data$YR - min(lionfish_data$YR)) + 1
+num_years <- max(lionfish_data$YR - min(lionfish_data$YR)) + 1
 animate(lionfish_map_animated,
-        nframes = num_years_alt,
-        fps = 2)
+        nframes = num_years,
+        fps = 2,
+        duration = (num_years + 5)/2,
+        end_pause = 5,
+        height = 4,
+        width = 6,
+        units = "in",
+        res = 300)
 
 lionfish_map_animated
 
-lionfish_map_shadow <- lionfish_map_animated +
-  shadow_mark() 
-# +
-  # scale_color_gradient(low = "#470887",
-  #                      high = "#F4D6FF")
 
-animate(lionfish_map_shadow,
-        nframes = num_years_alt,
-        fps = 2)
-
-anim_save("plots/lionfish_map1.gif")
+anim_save("plots/lionfish_map1_v2.gif")
 
 
 # to save as a video
-animate(lionfish_map_shadow,
-        nframes = num_years_alt,
+animate(lionfish_map_animated,
+        nframes = num_years,
         fps = 2,
+        duration = (num_years + 5)/2,
+        end_pause = 5,
+        height = 4,
+        width = 6,
+        units = "in",
+        res = 300,
         renderer = av_renderer())
 
-anim_save("plots/lionfish_map2.mpg")
-
-
-
-## need to add zeroes to the lionfish data for the years before it was detected and any years it wasn't detected when surveys were done.
-
-survey_years <- data.frame("YR" = sort(unique(bio_data_clean$YR)))
-
-survey_years
-
-
-## will doing a right join to the survey_years work for adding zeroes to the lionfish_data?? - yes! this can work to get the animation to show the blank years!
-
-lionfish_test <- lionfish_data %>% 
-  right_join(survey_years, join_by(YR))
-
-## I'll probably want to fill in some of the info for each species when I do this because otherwise all the other columns are blank except for year in the dataframe. So if I have more than one species in there, it might not work? not sure right now....
-
-test_lionfish_map <- base_map +
-  geom_point(data = lionfish_test,
-             na.rm = FALSE,
-             aes(x = DECSLON,
-                 y = DECSLAT,
-                 group = YR,
-                 color = YR)) +
-    scale_color_gradient(low = "#470887",
-                       high = "#F4D6FF",
-                       limits = c(1982, 2023),
-                       breaks = c(1982, 1992, 2002, 2012, 2022),
-                       labels = c(1982, 1992, 2002, 2012, 2022),
-                       name = "Year")
-
-                       # labels = c(1982, 1990, 2000, 2010, 2020, 2023))
-
-test_lionfish_map
-
-test_lionfish_map_shadow <- test_lionfish_map +
-  transition_time(YR) +
-  ggtitle('Lionfish Presence
-          Year: {frame_time}',
-          subtitle = 'Frame{frame} of {nframes}') +
-  shadow_mark()
-
-num_years_test <- max(lionfish_test$YR - min(lionfish_test$YR)) + 1
-
-animate(test_lionfish_map_shadow,
-        nframes = num_years_test,
-        fps = 2)
-
-anim_save("plots/lionfish_map3.gif")
+anim_save("plots/lionfish_map2_v2.mpg")
 
 
 ```
 
+## Mapping the species identified in [Fodrie et al. (2010)](https://onlinelibrary.wiley.com/doi/10.1111/j.1365-2486.2009.01889.x) tropicalization paper
 
+### Species listed as contributing to / evidence of tropicalization in GOM:
 
+#### Present in 2006-2007 when absent in 1970s
+
+-   *Lutjanus synagris* (lane snapper)
+-   *Epinephelus morio* (red grouper)
+-   *Chaetodon ocellatus* (spotfin butterflyfish)
+-   *Mycteroperca spp.* (grouper, non gag)
+-   *Centropristis philadelphica* (rock sea bass)
+-   *Fistularia tabacaria* (bluespotted cornetfish)
+-   *Ocyurus chrysurus* (yellowtail snapper)
+-   *Thalassoma bifasciatum* (bluehead wrasse)
+-   *Abudefduf saxatilis* (sergeant major)
+-   *Acanthuridae spp.* (surgeonfishes)
+-   *Sparisoma viride* (stoplight parrotfish)
+
+#### Large Increased Abundances from 1970s to 2006-2007
+
+-   *Mycteroperca microlepsis* (gag grouper)
+-   *Lutjanus griseus* (gray snapper)
+-   *Nicholsina usta* (emerald parrotfish)
 
 ```{r}
 
+# write a function to automate the gganimate of presence of different fish species...
 
-## writing some code down that will be helpful for mapping the SEAMAP trawl data
+
+# fish_tropical_maps <- function()
 
 
-# Determine geographic extent of our data
-# use ceiling() and floor() to round up and down to the nearest integer
+# Function to create a map/animation for a given fish species
+fish_species_animation <- function(
+                                   data,
+                                   taxonomic_column,
+                                   common_name_column,
+                                   species_name,
+                                   low_color = "#470887",  # Default low color
+                                   high_color = "#F4D6FF"  # Default high color
+                                   ) {
+  # Subset data for the specified species
+  species_data <- data %>% 
+    filter(if_any(all_of(taxonomic_column), ~ toupper(.) == toupper(species_name)))
+  
+  # Check if there is data for the specified species
+  if (nrow(species_data) == 0) {
+    stop(paste("No data found for species:", species_name))
+  }
+  
+  # Create survey years data frame
+  survey_years <- data.frame("YR" = sort(unique(data$YR)))
+  
+  # Join survey years to the species data
+  species_data <- right_join(species_data, survey_years, by = "YR")
+  
+  # Define color gradient for the species
+  species_color_gradient <- scale_fill_gradient(
+    low = low_color,
+    high = high_color,
+    limits = range(survey_years$YR),
+    breaks = seq(min(survey_years$YR), max(survey_years$YR), by = 10),
+    labels = seq(min(survey_years$YR), max(survey_years$YR), by = 10),
+    name = "Year"
+  )
+  
+  # # Create base map
+  # base_map <- ggplot()  # Add your base map specifications here
+  
+  # Create ggplot object for the map
+  plot <- base_map +
+    geom_point(data = species_data,
+               na.rm = FALSE,
+               aes(x = DECSLON,
+                   y = DECSLAT,
+                   group = YR,
+                   fill = YR),
+               size = 2.5,
+               shape = 21,
+               color = "black",
+               stroke = 0.5) +
+    species_color_gradient
+  
+  # Create animation
+  animation <- plot +
+    transition_time(YR) +
+    ggtitle(
+      label = paste(substr(toupper(species_name), 1, 1),
+                tolower(substr(toupper(species_name), 2, nchar(species_name))),
+                " Presence",
+                sep = ""
+          ),
+      subtitle = paste(
+        toTitleCase(species_data[[common_name_column]][1]),
+        "\nYear: {frame_time}\nFrame {frame} of {nframes}"
+      )
+    ) +
+    shadow_mark(alpha = 0.6,
+                color = "darkgray",
+                size = 1.5)  +
+    theme(text = element_text(family = "Times",
+                              size = 14),
+          plot.title = element_text(face = "bold"),
+          axis.title = element_text(size = 12,
+                                    face = "bold"),
+          axis.text = element_text(size = 10),
+          legend.title = element_text(size = 12,
+                                      face = "bold",
+                                      hjust = 0.5),
+          legend.text = element_text(size = 10))
+  
+  num_years <- max(data$YR - min(data$YR)) + 1
+  animation <- animate(animation,
+                       nframes = num_years,
+                       fps = 2,
+                       duration = (num_years + 5)/2,
+                       end_pause = 5,
+                       height = 4,
+                       width = 6,
+                       units = "in",
+                       res = 300)
+  
+  # Assign animation object to a variable with a name that includes the species name
+  assign(paste("animation_", species_name, sep = ""), animation, envir = .GlobalEnv)
+  
+  # Return the animation object
+  return(animation)
+}
 
-# max_lat <- ceiling(max(obs_data$latitude))
-# min_lat <- floor(min(obs_data$latitude))
-# max_lon <- ceiling(max(obs_data$longitude))
-# min_lon <- floor(min(obs_data$longitude))
-# 
-# 
-# # Store boundaries in a single extent object
-# geographic_extent <- ext(x = c(min_lon, max_lon, min_lat, max_lat))
+
+
+lionfish_function_animation <- fish_species_animation(
+  data = bio_data_clean,
+  taxonomic_column = "GENUS_BGS",
+  common_name_column = "common_name",
+  species_name = "PTEROIS"
+)
+
+
+animation_PTEROIS
+
+lionfish_function_animation
+
+
+## testing with another fish species
+red_grouper_function_animation <- fish_species_animation(
+  data = bio_data_clean,
+  taxonomic_column = "TAXONOMIC",
+  common_name_column = "common_name",
+  species_name = "Epinephelus morio",
+  low_color = "#FADFE4",
+  high_color = "#DB1133"
+)
+
+red_grouper_function_animation
+
+anim_save("plots/red_grouper_map1.gif")
 
 
 ```
-
-
-
