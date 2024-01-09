@@ -24,6 +24,7 @@ library(gganimate)
 library(gifski) # for gif output
 library(av) # for video output
 library(png)
+library(tools)
 
 # not sure I need these libraries for what I'm trying to do.
 # library(terra)
@@ -276,7 +277,7 @@ anim_save("plots/lionfish_map2_v2.mpg")
 -   *Lutjanus griseus* (gray snapper)
 -   *Nicholsina usta* (emerald parrotfish)
 
-```{r}
+```{r function to automate gganimate of presence of various fish species}
 
 # write a function to automate the gganimate of presence of different fish species...
 
@@ -382,6 +383,11 @@ fish_species_animation <- function(
 }
 
 
+```
+
+
+
+```{r testing function created above}
 
 lionfish_function_animation <- fish_species_animation(
   data = bio_data_clean,
@@ -411,4 +417,106 @@ red_grouper_function_animation
 anim_save("plots/red_grouper_map1.gif")
 
 
+
 ```
+
+
+### Examining the fish species that Will Heyman said would be a starting point as they are species of concern for tropicalization.
+
+ - king mackerel *Scomberomorus cavalla*
+ - mahi *Coryphaena hippurus*
+ - red grouper (examined above)
+ - goliath grouper *Epinephelus itajara*
+ - wahoo *Acanthocybium solandri*
+ 
+
+```{r}
+
+## SHAYNA - will need to run the 1_organize_data script to use the taxa_names table to check for various species ##
+
+# check that these species are present in the data...
+
+filter(taxa_names, TAXONOMIC == "SCOMBEROMORUS CAVALLA") # yes, found in the taxa names
+filter(taxa_names, TAXONOMIC == "CORYPHAENA HIPPURUS") # yes, found in the taxa names, common name given as "dolphin"
+filter(taxa_names, TAXONOMIC == "EPINEPHELUS ITAJARA") # yes, found in the taxa names
+filter(taxa_names, TAXONOMIC == "ACANTHOCYBIUM SOLANDRI") # no, not found in the taxa names - check spelling and other possible scientific names
+
+filter(taxa_names, common_name == "king mackerel") # no, not found in the taxa names
+filter(taxa_names, common_name == "dolphin") # yes, found in the taxa names, common name given as "dolphin", but aka mahi mahi
+filter(taxa_names, common_name == "goliath grouper") # yes, found in the taxa names
+
+# searching for wahoo and other possible common names for it
+filter(taxa_names, common_name == "wahoo") # no, not found in the common names - check spelling and other possible scientific names
+filter(taxa_names, common_name == "atlantic wahoo") # not found
+filter(taxa_names, common_name == "kinkfish") # not found
+filter(taxa_names, common_name == "peto") # not found
+filter(taxa_names, common_name == "guarapucu") # not found
+filter(taxa_names, common_name == "ono") # not found
+filter(taxa_names, common_name == "thazard batard") # not found
+
+```
+
+
+
+
+```{r king mackerel}
+
+## testing with another fish species - king mackerel
+king_mackerel_function_animation <- fish_species_animation(
+  data = bio_data_clean,
+  taxonomic_column = "TAXONOMIC",
+  common_name_column = "common_name",
+  species_name = "Scomberomorus cavalla",
+  low_color = "lightgreen",
+  high_color = "darkgreen"
+)
+
+king_mackerel_function_animation
+
+anim_save("plots/king_mackerel_map1.gif")
+
+```
+
+
+
+
+```{r mahi / dolphin fish}
+
+## testing with another fish species - mahi
+mahi_function_animation <- fish_species_animation(
+  data = bio_data_clean,
+  taxonomic_column = "TAXONOMIC",
+  common_name_column = "common_name",
+  species_name = "Coryphaena hippurus",
+  low_color = "lightyellow",
+  high_color = "darkorange"
+)
+
+mahi_function_animation
+
+anim_save("plots/mahi_map1.gif")
+
+```
+
+
+
+```{r goliath grouper}
+
+# Epinephelus itajara
+
+## testing with another fish species - mahi
+goliath_grouper_function_animation <- fish_species_animation(
+  data = bio_data_clean,
+  taxonomic_column = "TAXONOMIC",
+  common_name_column = "common_name",
+  species_name = "Epinephelus itajara",
+  low_color = "lightgray",
+  high_color = "black"
+)
+
+goliath_grouper_function_animation
+
+anim_save("plots/goliath_grouper_map1.gif")
+
+```
+
