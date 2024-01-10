@@ -7,6 +7,7 @@ editor: source
 
 ```{r load packages}
 #| echo: false
+#| message: false
 
 library(tidyverse) # includes and loads the packages listed below
 # library(readr)
@@ -33,12 +34,21 @@ library(tools)
 
 ```
 
+
+```{r}
+#| echo: false
+
 ## Accessing objects from other Quarto documents in this R Project???
 
 ### Not sure this is possoible to do. Might be better to export the clean data files from my other quarto document and then reload / import them into this quarto document...
+```
+
+
+
 
 ```{r accessing data from 1_organize_data QMD file}
-
+#| echo: false
+#| 
 # setwd("R_scripts/")
 # 
 # source("1_organize_data.qmd", local = FALSE)
@@ -47,17 +57,23 @@ library(tools)
 
 ```
 
+
+
 ```{r reading in cleaned bio data}
+#| echo: false
+#| message: false
 
 bio_data_clean <- read_csv(file = "data/clean_data/bio_data.csv")
 
-head(bio_data_clean)
+# head(bio_data_clean)
 
 ```
 
 ## obtain bounding coordinates for making maps
 
 ```{r}
+#| echo: false
+#| message: false
 
 # Determine geographic extent of our data
 # use ceiling() and floor() to round up and down to the nearest integer
@@ -75,6 +91,8 @@ min_long <- floor(min(bio_data_clean$DECSLON))
 ```
 
 ```{r obtain GoM map}
+#| echo: false
+#| message: false
 
 
 gulf_of_mexico_info <- map_data("usa", region = ".")
@@ -108,7 +126,7 @@ base_map <- ggplot(data = world_base_map,
        y = "Latitude")
 
 
-base_map
+# base_map
 
 # theme_void().  #EBF9FF #B3E5FC
 
@@ -150,17 +168,19 @@ base_map
 ```
 
 ```{r subset of bio data to test mapping for 1 species overtime}
+#| echo: false
+#| message: false
 
 
 lionfish_data <- bio_data_clean %>% 
   filter(GENUS_BGS == "PTEROIS")
 
-head(lionfish_data)
+# head(lionfish_data)
 
 
 ## need to add zeroes to the lionfish data for the years before it was detected and any years it wasn't detected when surveys were done.
 survey_years <- data.frame("YR" = sort(unique(bio_data_clean$YR)))
-survey_years
+# survey_years
 
 
 ## Do a right join to the survey_years work for adding zeroes to the lionfish_data to get the animation to show the blank years.
@@ -173,6 +193,9 @@ lionfish_data <- lionfish_data %>%
 ```
 
 ```{r mapping lionfish data}
+#| echo: false
+#| warning: false
+#| message: false
 
 lionfish_map <- base_map +
   geom_point(data = lionfish_data,
@@ -204,7 +227,7 @@ lionfish_map <- base_map +
 
                        # labels = c(1982, 1990, 2000, 2010, 2020, 2023))
 
-lionfish_map
+# lionfish_map
 
 lionfish_map_animated <- lionfish_map +
   transition_time(YR) +
@@ -236,19 +259,19 @@ lionfish_map_animated
 anim_save("plots/lionfish_map1_v2.gif")
 
 
-# to save as a video
-animate(lionfish_map_animated,
-        nframes = num_years,
-        fps = 2,
-        duration = (num_years + 5)/2,
-        end_pause = 5,
-        height = 4,
-        width = 6,
-        units = "in",
-        res = 300,
-        renderer = av_renderer())
-
-anim_save("plots/lionfish_map2_v2.mpg")
+# # to save as a video
+# animate(lionfish_map_animated,
+#         nframes = num_years,
+#         fps = 2,
+#         duration = (num_years + 5)/2,
+#         end_pause = 5,
+#         height = 4,
+#         width = 6,
+#         units = "in",
+#         res = 300,
+#         renderer = av_renderer())
+# 
+# anim_save("plots/lionfish_map2_v2.mpg")
 
 
 ```
@@ -278,6 +301,10 @@ anim_save("plots/lionfish_map2_v2.mpg")
 -   *Nicholsina usta* (emerald parrotfish)
 
 ```{r function to automate gganimate of presence of various fish species}
+#| echo: false
+#| warning: false
+#| message: false
+
 
 # write a function to automate the gganimate of presence of different fish species...
 
@@ -388,6 +415,9 @@ fish_species_animation <- function(
 
 
 ```{r testing function created above}
+#| echo: false
+#| warning: false
+#| message: false
 
 lionfish_function_animation <- fish_species_animation(
   data = bio_data_clean,
@@ -397,7 +427,7 @@ lionfish_function_animation <- fish_species_animation(
 )
 
 
-animation_PTEROIS
+# animation_PTEROIS
 
 lionfish_function_animation
 
@@ -421,7 +451,7 @@ anim_save("plots/red_grouper_map1.gif")
 ```
 
 
-### Examining the fish species that Will Heyman said would be a starting point as they are species of concern for tropicalization.
+### Examining the fish species that Will Heyman suggested.
 
  - king mackerel *Scomberomorus cavalla*
  - mahi *Coryphaena hippurus*
@@ -431,6 +461,8 @@ anim_save("plots/red_grouper_map1.gif")
  
 
 ```{r}
+#| echo: false
+#| eval: false
 
 ## SHAYNA - will need to run the 1_organize_data script to use the taxa_names table to check for various species ##
 
@@ -460,6 +492,10 @@ filter(taxa_names, common_name == "thazard batard") # not found
 
 
 ```{r king mackerel}
+#| echo: false
+#| message: false
+#| warning: false
+
 
 ## testing with another fish species - king mackerel
 king_mackerel_function_animation <- fish_species_animation(
@@ -481,6 +517,10 @@ anim_save("plots/king_mackerel_map1.gif")
 
 
 ```{r mahi / dolphin fish}
+#| echo: false
+#| message: false
+#| warning: false
+
 
 ## testing with another fish species - mahi
 mahi_function_animation <- fish_species_animation(
@@ -501,6 +541,9 @@ anim_save("plots/mahi_map1.gif")
 
 
 ```{r goliath grouper}
+#| echo: false
+#| message: false
+#| warning: false
 
 # Epinephelus itajara
 
