@@ -1,0 +1,68 @@
+---
+title: "3_geographic_centers"
+author: "Shayna A. Sura"
+format: pdf
+---
+
+## Quarto
+
+Quarto enables you to weave together content and executable code into a finished document. To learn more about Quarto see <https://quarto.org>.
+
+## Running Code
+
+When you click the **Render** button a document will be generated that includes both content and the output of embedded code. You can embed code like this:
+
+```{r setup}
+
+```
+
+You can add options to executable code like this 
+
+```{r reading in cleaned bio data}
+#| echo: false
+#| message: false
+
+bio_data_clean <- read_csv(file = "data/clean_data/bio_data.csv")
+
+# head(bio_data_clean)
+
+```
+
+
+```{r lionfish data subset}
+
+lionfish_data <- bio_data_clean %>% 
+  filter(GENUS_BGS == "PTEROIS")
+
+## need to add zeroes to the lionfish data for the years before it was detected and any years it wasn't detected when surveys were done.
+survey_years <- data.frame("YR" = sort(unique(bio_data_clean$YR)))
+# survey_years
+
+## need to add zeroes to the lionfish data for the SURVEY STATIONS within each year where lionfish were NOT detected...
+
+
+## Do a right join to the survey_years work for adding zeroes to the lionfish_data to get the animation to show the blank years.
+lionfish_data <- lionfish_data %>% 
+  right_join(survey_years, join_by(YR))
+
+```
+
+
+
+```{r function to calculate CG}
+
+survey_years
+
+cg <- data.frame(latitude = double(),
+                 longitude = double())
+
+for(i in 1:length(unique(lionfish_data$YR))) {
+  filter(lionfish_data, YR == survey_years[i,])
+  cg$latitude[i] <- sum(lionfish_data$DECSLAT*lionfish_data$SELECT_BGS)
+  cg$longitude[i] <- sum(lionfish_data$DECSLON*lionfish_data$SELECT_BGS)
+}
+  
+
+```
+
+
