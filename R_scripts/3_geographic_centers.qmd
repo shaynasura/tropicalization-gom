@@ -20,6 +20,8 @@ library(here) # helps with paths for files
 library(purrr)
 
 library(rvest) #for web scraping
+library(xml2)
+library(stringr)
 
 ```
 
@@ -199,15 +201,15 @@ summary(long_model)
 ```
 
 
+## side note - the rfishbase package looks helpful for extracting most information from FishBase. Unfortunately, the information I need to extract is not found in a table, so this package doesn't work for me.
 
 
+```{r web scraping FishBase for fish species distribution information}
 
-```{r Larry code}
 
-
-library(rvest)
-library(xml2)
-library(stringr)
+# library(rvest)
+# library(xml2)
+# library(stringr)
 
 # Function to scrape climate zone information from FishBase
 get_climate_zone <- function(species_name) {
@@ -257,125 +259,37 @@ print(climate_zone)
 ```
 
 
+```{r fish scientific names that need to be updated}
 
 
-```{r web scraping fish base for fish species distribution information}
+## the taxonomic name for the Rock Sea Bass in the SEAMAP trawl data is currently "CENTROPRISTIS PHILADELPHICUS", but on FishBase, the scientific name given is "Centropristis philadelphica"
 
-# library(rvest)
-# library(dplyr)
-
-
-
-# Oh - I think I'm starting to get it now. Can you modify the code so it first finds the html_nodes("hi.slabel.bottomBorder") where the text includes the word "Environment"? And then, can you have it search the text within that Environment node, for the node type <div class="smallSpace">? I think that should point us to the text that I want screened for the climate zone listed.
-
-#ss-main > div:nth-child(7) > span
-#ss-main > div:nth-child(7) > span
-#ss-main > div:nth-child(7)
+bio_data_clean <- bio_data_clean %>% 
+  mutate(TAXONOMIC = case_when((TAXONOMIC == "CENTROPRISTIS PHILADELPHICUS") ~ "Centropristis philadelphica", .default = TAXONOMIC))
 
 
-# Function to scrape climate zone information from FishBase
-get_climate_zone <- function(species_name) {
-  # Construct the URL for the FishBase search page
-  base_url <- "https://www.fishbase.se/summary/"
-  search_url <- paste0(base_url, gsub(" ", "-", tolower(species_name)))
-  
-  # Fetch the HTML content of the search page
-  search_page <- read_html(search_url)
-  
-  # # Extract text from the Environment section
-  # environment_text <- search_page %>%
-  #   # html_elements("h1.slabel.bottomBorder") %>%
-  #   # html_elements("ss-main > div:nth-child(7) > span") %>%
-  #   html_elements("span") %>% 
-  #   html_text() %>%
-  #   tolower()
-  # 
-  # # # SHAYNA CODE - make sure the environment_text is in an appropriate format to try and match text with grepl or str_detect
-  # # environment_text <- str_replace_all(environment_text, "[:punct:]", "")
-  
-  
-  
-   # Find the <h1> element containing the word "Environment"
-  environment_heading <- search_page %>%
-    html_elements("h1.slabel.bottomBorder") %>%
-    html_text() %>%
-    grepl("Environment", ignore.case = TRUE)
-  
-  # Check if environment information is found
-  if (!any(environment_heading)) {
-    warning(paste("No environment header found for the species:", species_name))
-    return(NA)
-  }
-  
-  # Extract text from the <div> within the "Environment" section
-  environment_text <- search_page %>%
-    # html_elements(xpath = "//h1[contains(., 'Environment')]/following-sibling::div[@class='smallSpace']") %>%
-    html_elements(xpath = "//h1[contains(., 'Environment')]/span") %>%
-    html_text() %>%
-    tolower()
-  
-  
-  # Check if environment_text is not empty
-  if (length(environment_text) == 0) {
-    warning(paste("No environment information found for the species:", species_name))
-    return(NA)
-  }
-  
-  # Extract climate zone information from the Environment text
-  climate_zones <- c("subtropical", "tropical", "temperate", "polar")
-  climate_zone <- NA
-  
-  # if (any(grepl(paste(climate_zones, collapse='|'), environment_text, ignore.case = TRUE))) {
-  #   climate_zone <- climate_zones[grepl(paste(climate_zones, collapse='|'), environment_text, ignore.case = TRUE)][1]
-  # }
-  
-  for (zone in climate_zones) {
-    if (any(grepl(zone, environment_text, ignore.case = TRUE))) {
-      climate_zone <- zone
-      break
-    }
-  }
-  
-  # Print environment text for diagnostics
-  cat("Environment Text:", environment_text, "\n")
-  
-  # Return climate zone information
-  return(climate_zone)
-}
+```
 
 
 
-# Test the function for "Epinephelus morio"
-species_name <- "Epinephelus morio"
-climate_zone <- get_climate_zone(species_name)
-print(climate_zone)
+### Need to find a way to refine my list of fish species to do all my analyses and plotting for! >1000 unique fish 'species' is too many.
+ - consider a different column / variable to use
+ - only keep unique TAXONOMIC entries that have 2 words (Genus species) versus just 1 word (family or genus level only)
 
 
 
-## testing matches
-grepl(paste(climate_zones, collapse='|'), test_environ_text[35], ignore.case = TRUE)
-
-if (any(grepl(paste(climate_zones, collapse='|'), test_environ_text[35], ignore.case = TRUE))) {
-    climate_zone <- climate_zones[grepl(paste(climate_zones, collapse='|'), test_environ_text[35], ignore.case = TRUE)][1]
-}
-
-
-grepl(paste(climate_zones, collapse='|'), test_environ_text, ignore.case = TRUE)
-
-if (any(grepl(paste(climate_zones, collapse='|'), test_environ_text, ignore.case = TRUE))) {
-    climate_zone <- climate_zones[grepl(paste(climate_zones, collapse='|'), test_environ_text, ignore.case = TRUE)][1]
-  }
-
-
-
-
+```{r loop through FishBase function to get information for every fish species}
 
 
 # Initialize an empty data frame to store results
 species_climate_df <- data.frame(species_name = character(), climate_zone = character(), stringsAsFactors = FALSE)
 
+
 # Iterate through each unique fish species
-unique_species <- unique(bio_data_clean$TAXONOMIC)
+unique_species <- data.frame(TAXONOMIC = unique(bio_data_clean$TAXONOMIC)) %>% 
+  arrange(TAXONOMIC)
+
+
 for (species in unique_species) {
   # Get the climate zone for the species
   climate_zone <- get_climate_zone(species)
@@ -386,6 +300,9 @@ for (species in unique_species) {
 
 # Print the resulting data frame
 print(species_climate_df)
+
+# View the resulting data frame
+view(species_climate_df)
 
 
 
