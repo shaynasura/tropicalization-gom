@@ -1,0 +1,43 @@
+---
+title: "4_map_stations"
+author: "Shayna A. Sura"
+format: html
+---
+
+## Mapping the SEAMAP Trawl stations over time
+
+```{r setup}
+
+
+```
+
+
+
+# Visualize Data - Sampling Locations
+
+```{r}
+
+# library(leaflet)
+# 
+# 
+# # how can I filter out the excess data from bio_data so I only have one set of coordinates for each trawl station?
+# ## - the small_starec_data only has 1 row for each STATIONID.
+# 
+# trawl_locations <- inner_join(x = small_starec_data, y = bio_data, by = join_by(STATIONID))
+# # hmm this is still giving me ALL the rows....
+# # need to select out the unnecessary columns from bio_data?
+# 
+# 
+# trawl_locations_2 <- (small_starec_data$STATIONID == bio_data$STATIONID) == TRUE # this doesn't work...
+# 
+# 
+# leaflet(bio_data)
+
+```
+
+
+
+
+
+
+

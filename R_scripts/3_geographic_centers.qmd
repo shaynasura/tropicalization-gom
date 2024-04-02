@@ -4,19 +4,26 @@ author: "Shayna A. Sura"
 format: pdf
 ---
 
-## Quarto
 
-Quarto enables you to weave together content and executable code into a finished document. To learn more about Quarto see <https://quarto.org>.
-
-## Running Code
-
-When you click the **Render** button a document will be generated that includes both content and the output of embedded code. You can embed code like this:
 
 ```{r setup}
 
+library(tidyverse) # includes and loads the packages listed below
+# library(readr)
+# library(tidyr)
+# library(dplyr)
+# library(ggplot2)
+# library(lubridate)
+
+library(here) # helps with paths for files
+
+library(purrr)
+
+library(rvest) #for web scraping
+
 ```
 
-You can add options to executable code like this 
+
 
 ```{r reading in cleaned bio data}
 #| echo: false
@@ -42,27 +49,347 @@ survey_years <- data.frame("YR" = sort(unique(bio_data_clean$YR)))
 
 
 ## Do a right join to the survey_years work for adding zeroes to the lionfish_data to get the animation to show the blank years.
-lionfish_data <- lionfish_data %>% 
-  right_join(survey_years, join_by(YR))
+# lionfish_data <- lionfish_data %>% 
+#   right_join(survey_years, join_by(YR))
 
 ```
 
 
 
-```{r function to calculate CG}
+```{r calculate gCOB for lionfish}
 
-survey_years
+# survey_years
 
-cg <- data.frame(latitude = double(),
-                 longitude = double())
+cg <- data.frame(year = unique(lionfish_data$YR),
+                 latitude = NA,
+                 longitude = NA)
+
+unique_years <- unique(lionfish_data$YR)
 
 for(i in 1:length(unique(lionfish_data$YR))) {
-  filter(lionfish_data, YR == survey_years[i,])
-  cg$latitude[i] <- sum(lionfish_data$DECSLAT*lionfish_data$SELECT_BGS)
-  cg$longitude[i] <- sum(lionfish_data$DECSLON*lionfish_data$SELECT_BGS)
-}
+  filtered_data <- filter(lionfish_data, YR == unique_years[i])
   
+  # Check if the filtered dataset is not empty
+  if(nrow(filtered_data) > 0) {
+    cg$latitude[i] <- sum(filtered_data$DECSLAT * filtered_data$SELECT_BGS) / sum(filtered_data$SELECT_BGS)
+    cg$longitude[i] <- sum(filtered_data$DECSLON * filtered_data$SELECT_BGS) / sum(filtered_data$SELECT_BGS)
+  } else {
+    # If the filtered dataset is empty, assign NA to latitude and longitude
+    cg$latitude[i] <- NA
+    cg$longitude[i] <- NA
+  }
+}
+
 
 ```
+
+
+
+```{r function to calculate gCOB for species}
+
+fish_calculate_gCOB <- function(data = bio_data_clean,
+                                taxonomic_column = "TAXONOMIC",
+                                common_name_column = "common_name",
+                                species_name)
+  {
+  species_data <- data %>% 
+    filter(if_any(all_of(taxonomic_column), ~ toupper(.) == toupper(species_name)))
+  
+  # Check if there is data for the specified species
+  if (nrow(species_data) == 0) {
+    stop(paste("No data found for species:", species_name))
+  }
+  
+  # determine the specific years where fish appeared in trawl(s)
+  unique_years <- unique(species_data$YR)
+  
+  # initialize empty dataframe to hold gCOB values
+  cg <- data.frame(year = unique(species_data$YR),
+                 latitude = NA,
+                 longitude = NA)
+  
+  # for loop to calculate gCOB latitude and longitude for each year when fish appeared in trawl(s)
+  for(i in 1:length(unique(species_data$YR))) {
+    filtered_data <- filter(species_data, YR == unique_years[i])
+    
+    # Check if the filtered dataset is not empty
+    if(nrow(filtered_data) > 0) {
+      cg$latitude[i] <- sum(filtered_data$DECSLAT * filtered_data$SELECT_BGS) / sum(filtered_data$SELECT_BGS)
+      cg$longitude[i] <- sum(filtered_data$DECSLON * filtered_data$SELECT_BGS) / sum(filtered_data$SELECT_BGS)
+    } else {
+      # If the filtered dataset is empty, assign NA to latitude and longitude
+      cg$latitude[i] <- NA
+      cg$longitude[i] <- NA
+    }}
+  
+  # Order the cg dataframe by time / years
+  cg <- cg %>% arrange(year)
+  
+  # Assign the cg dataframe with gCOB values to a variable with a name that includes the species name
+  assign(paste(species_name, "_gCOB", sep = ""), cg, envir = .GlobalEnv)
+  
+  # Return the cg dataframe
+  return(cg)
+}
+
+
+```
+
+```{r}
+
+## testing the function
+
+fish_calculate_gCOB(bio_data_clean,
+                    taxonomic = "GENUS_BGS",
+                    species_name = "Pterois")
+
+
+fish_calculate_gCOB(bio_data_clean,
+                    taxonomic = "TAXONOMIC",
+                    species_name = "Epinephelus morio")
+
+```
+
+
+
+```{r calculate gCOB for all fish species}
+
+# Extract unique fish species taxonomic names
+species_list <- na.omit(unique(bio_data_clean$TAXONOMIC))
+
+# Apply the fish_calculate_gCOB function to each unique species and combine results into a list
+result_list <- map(species_list, ~ fish_calculate_gCOB(taxonomic_column = "TAXONOMIC", species_name = .))
+
+
+```
+
+
+
+
+```{r test for linear trends of gCOB for lionfish}
+
+ggplot(cg, aes(longitude, latitude)) +
+  geom_point(aes(colour = year))
+
+
+ggplot(cg, aes(year, longitude)) +
+  geom_point() +
+  geom_smooth(method = lm,
+              level = 0.95,
+              col = "purple",
+              linewidth = 2)
+
+
+ggplot(cg, aes(year, latitude)) +
+  geom_point() +
+  geom_smooth(method = lm,
+              level = 0.95,
+              col = "purple",
+              linewidth = 2)
+
+
+lat_model <- lm(latitude ~ year, data = cg)
+summary(lat_model)
+
+
+long_model <- lm(longitude ~ year, data = cg)
+summary(long_model)
+
+
+```
+
+
+
+
+
+```{r Larry code}
+
+
+library(rvest)
+library(xml2)
+library(stringr)
+
+# Function to scrape climate zone information from FishBase
+get_climate_zone <- function(species_name) {
+  # Construct the URL for the FishBase search page
+  base_url <- "https://www.fishbase.se/summary/"
+  search_url <- paste0(base_url, gsub(" ", "-", tolower(species_name)))
+ 
+  # Fetch the HTML content of the search page
+  search_page <- read_html(search_url)
+ 
+  # Find the <h1> element containing the word "Environment" and get the following sibling <div>
+  environment_section <- search_page %>%
+    html_elements(xpath = "//h1[contains(translate(., 'ENVIRONMENT', 'environment'), 'environment')]/following-sibling::div[1]") %>%
+    html_text(trim = TRUE) %>%
+    tolower()
+ 
+  # Check if environment information is found
+  if (length(environment_section) == 0) {
+    warning(paste("No environment information found for the species:", species_name))
+    return(NA)
+  }
+ 
+  # Extract climate zone information from the Environment text
+  climate_zones <- c("subtropical", "tropical", "temperate", "polar")
+  climate_zone <- NA
+ 
+  for (zone in climate_zones) {
+    if (str_detect(environment_section, fixed(zone, ignore_case = TRUE))) {
+      climate_zone <- zone
+      break
+    }
+  }
+ 
+  # Print environment text for diagnostics
+  cat("Environment Text:", environment_section, "\n")
+ 
+  # Return climate zone information
+  return(climate_zone)
+}
+
+# Test the function for "Epinephelus morio"
+species_name <- "Epinephelus morio"
+climate_zone <- get_climate_zone(species_name)
+print(climate_zone)
+
+
+```
+
+
+
+
+```{r web scraping fish base for fish species distribution information}
+
+# library(rvest)
+# library(dplyr)
+
+
+
+# Oh - I think I'm starting to get it now. Can you modify the code so it first finds the html_nodes("hi.slabel.bottomBorder") where the text includes the word "Environment"? And then, can you have it search the text within that Environment node, for the node type <div class="smallSpace">? I think that should point us to the text that I want screened for the climate zone listed.
+
+#ss-main > div:nth-child(7) > span
+#ss-main > div:nth-child(7) > span
+#ss-main > div:nth-child(7)
+
+
+# Function to scrape climate zone information from FishBase
+get_climate_zone <- function(species_name) {
+  # Construct the URL for the FishBase search page
+  base_url <- "https://www.fishbase.se/summary/"
+  search_url <- paste0(base_url, gsub(" ", "-", tolower(species_name)))
+  
+  # Fetch the HTML content of the search page
+  search_page <- read_html(search_url)
+  
+  # # Extract text from the Environment section
+  # environment_text <- search_page %>%
+  #   # html_elements("h1.slabel.bottomBorder") %>%
+  #   # html_elements("ss-main > div:nth-child(7) > span") %>%
+  #   html_elements("span") %>% 
+  #   html_text() %>%
+  #   tolower()
+  # 
+  # # # SHAYNA CODE - make sure the environment_text is in an appropriate format to try and match text with grepl or str_detect
+  # # environment_text <- str_replace_all(environment_text, "[:punct:]", "")
+  
+  
+  
+   # Find the <h1> element containing the word "Environment"
+  environment_heading <- search_page %>%
+    html_elements("h1.slabel.bottomBorder") %>%
+    html_text() %>%
+    grepl("Environment", ignore.case = TRUE)
+  
+  # Check if environment information is found
+  if (!any(environment_heading)) {
+    warning(paste("No environment header found for the species:", species_name))
+    return(NA)
+  }
+  
+  # Extract text from the <div> within the "Environment" section
+  environment_text <- search_page %>%
+    # html_elements(xpath = "//h1[contains(., 'Environment')]/following-sibling::div[@class='smallSpace']") %>%
+    html_elements(xpath = "//h1[contains(., 'Environment')]/span") %>%
+    html_text() %>%
+    tolower()
+  
+  
+  # Check if environment_text is not empty
+  if (length(environment_text) == 0) {
+    warning(paste("No environment information found for the species:", species_name))
+    return(NA)
+  }
+  
+  # Extract climate zone information from the Environment text
+  climate_zones <- c("subtropical", "tropical", "temperate", "polar")
+  climate_zone <- NA
+  
+  # if (any(grepl(paste(climate_zones, collapse='|'), environment_text, ignore.case = TRUE))) {
+  #   climate_zone <- climate_zones[grepl(paste(climate_zones, collapse='|'), environment_text, ignore.case = TRUE)][1]
+  # }
+  
+  for (zone in climate_zones) {
+    if (any(grepl(zone, environment_text, ignore.case = TRUE))) {
+      climate_zone <- zone
+      break
+    }
+  }
+  
+  # Print environment text for diagnostics
+  cat("Environment Text:", environment_text, "\n")
+  
+  # Return climate zone information
+  return(climate_zone)
+}
+
+
+
+# Test the function for "Epinephelus morio"
+species_name <- "Epinephelus morio"
+climate_zone <- get_climate_zone(species_name)
+print(climate_zone)
+
+
+
+## testing matches
+grepl(paste(climate_zones, collapse='|'), test_environ_text[35], ignore.case = TRUE)
+
+if (any(grepl(paste(climate_zones, collapse='|'), test_environ_text[35], ignore.case = TRUE))) {
+    climate_zone <- climate_zones[grepl(paste(climate_zones, collapse='|'), test_environ_text[35], ignore.case = TRUE)][1]
+}
+
+
+grepl(paste(climate_zones, collapse='|'), test_environ_text, ignore.case = TRUE)
+
+if (any(grepl(paste(climate_zones, collapse='|'), test_environ_text, ignore.case = TRUE))) {
+    climate_zone <- climate_zones[grepl(paste(climate_zones, collapse='|'), test_environ_text, ignore.case = TRUE)][1]
+  }
+
+
+
+
+
+
+# Initialize an empty data frame to store results
+species_climate_df <- data.frame(species_name = character(), climate_zone = character(), stringsAsFactors = FALSE)
+
+# Iterate through each unique fish species
+unique_species <- unique(bio_data_clean$TAXONOMIC)
+for (species in unique_species) {
+  # Get the climate zone for the species
+  climate_zone <- get_climate_zone(species)
+  
+  # Append the species name and climate zone to the data frame
+  species_climate_df <- rbind(species_climate_df, data.frame(species_name = species, climate_zone = climate_zone))
+}
+
+# Print the resulting data frame
+print(species_climate_df)
+
+
+
+```
+
 
 
