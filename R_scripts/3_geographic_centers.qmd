@@ -104,16 +104,12 @@ fish_calculate_gCOB <- function(data = bio_data_clean,
   
   # determine the specific years where fish appeared in trawl(s)
   unique_years <- unique(species_data$YR)
-  
-  # initialize empty dataframe to hold gCOB values
-  cg <- data.frame(year = unique(species_data$YR),
-                 latitude = NA,
-                 longitude = NA)
-  
+
+
   # for loop to calculate gCOB latitude and longitude for each year when fish appeared in trawl(s)
   for(i in 1:length(unique(species_data$YR))) {
     filtered_data <- filter(species_data, YR == unique_years[i])
-    
+
     # Check if the filtered dataset is not empty
     if(nrow(filtered_data) > 0) {
       cg$latitude[i] <- sum(filtered_data$DECSLAT * filtered_data$SELECT_BGS) / sum(filtered_data$SELECT_BGS)
@@ -123,21 +119,90 @@ fish_calculate_gCOB <- function(data = bio_data_clean,
       cg$latitude[i] <- NA
       cg$longitude[i] <- NA
     }}
-  
+
   # Order the cg dataframe by time / years
   cg <- cg %>% arrange(year)
-  
+
   # Assign the cg dataframe with gCOB values to a variable with a name that includes the species name
   assign(paste(species_name, "_gCOB", sep = ""), cg, envir = .GlobalEnv)
-  
+
   # Return the cg dataframe
   return(cg)
+  
 }
+  
+  
+  
+  # 
+  # cg <- list()  # Initialize an empty list to store data frames
+  # 
+  # for (i in 1:length(unique_years)) {
+  #   filtered_data <- filter(species_data, YR == unique_years[i])
+  #   if (nrow(filtered_data) > 0) {
+  #     cg[[i]] <- data.frame(year = unique_years[i],
+  #                            latitude = sum(filtered_data$DECSLAT * filtered_data$SELECT_BGS) / sum(filtered_data$SELECT_BGS),
+  #                            longitude = sum(filtered_data$DECSLON * filtered_data$SELECT_BGS) / sum(filtered_data$SELECT_BGS))
+  #   } else {
+  #     cg[[i]] <- data.frame(year = unique_years[i],
+  #                            latitude = NA,
+  #                            longitude = NA)
+  #   }
+  # }
+  # 
+  # cg <- lapply(cg, function(x) x[order(x$year), ])  # Order each data frame by year
+  # 
+  # names(cg) <- species_name  # Assign the species name as the name of the list element
+  # 
+  # return(cg)
+  
+  
+  
+  
+  
+  
+  
+  # # initialize an empty list to store data frames
+  # cg_list <- list()
+  # 
+  # # # initialize empty dataframe to hold gCOB values
+  # # cg <- data.frame(year = unique(species_data$YR),
+  # #                latitude = NA,
+  # #                longitude = NA)
+  # 
+  # 
+  # for (i in 1:length(unique_years)) {
+  #   filtered_data <- filter(species_data, YR == unique_years[i])
+  #   if (nrow(filtered_data) > 0) {
+  #     cg <- data.frame(year = unique_years[i],
+  #                      latitude = sum(filtered_data$DECSLAT * filtered_data$SELECT_BGS) / sum(filtered_data$SELECT_BGS),
+  #                      longitude = sum(filtered_data$DECSLON * filtered_data$SELECT_BGS) / sum(filtered_data$SELECT_BGS))
+  #   } else {
+  #     cg <- data.frame(year = unique_years[i],
+  #                      latitude = NA,
+  #                      longitude = NA)
+  #   }
+  #   
+  #   # store the result with the species name as its name in the list
+  #   cg_list[[species_name]] <- cg  # Add the data frame to the list
+  # }
+  # 
+  # cg_list <- lapply(cg_list, function(x) x[order(x$year), ])  # Order each data frame by year
+  # 
+  # return(cg_list)
+  
+  
+  
+  
+#   
+# }
 
 
 ```
 
-```{r}
+
+
+
+```{r testing the gCOB function with individual species}
 
 ## testing the function
 
@@ -154,29 +219,77 @@ fish_calculate_gCOB(bio_data_clean,
 
 
 
-```{r calculate gCOB for all fish species}
+```{r extract unique fish species names}
 
-# Extract unique fish species taxonomic names
-species_list <- na.omit(unique(bio_data_clean$TAXONOMIC))
-length(species_list) ## returns 1,166 unique taxonomic names
+# Extract unique fish species taxonomic names - ONLY fishes identified to species level - returns a dataframe
+## need to remove the occurrence of CALAMUS PRORIDENS/NODOSUS in the fish species list because it causes problems when trying to scrape data from FishBase
 
-
-# Extract unique fish species taxonomic names - ONLY fishes identified to species level
-species_df <- bio_data_clean[grep("\\b\\w+\\s\\w+\\b", bio_data_clean$TAXONOMIC), ]
-species_list_2 <- unique(species_df$TAXONOMIC)
-length(species_list_2) ## returns 848 unique taxonomic names
-
-species_list_3 <- unique(bio_data_clean[grep("\\b\\w+\\s\\w+\\b", bio_data_clean$TAXONOMIC), "TAXONOMIC"]) %>% 
+species_df <- unique(bio_data_clean[grep("\\b\\w+\\s\\w+\\b", bio_data_clean$TAXONOMIC), "TAXONOMIC"]) %>% 
+  filter(TAXONOMIC != "CALAMUS PRORIDENS/NODOSUS") %>% 
   arrange(TAXONOMIC)
 
-## Misspelled entries in the TAXONOMIC column
-# - 
+
+dim(species_df)  ## returns 846 unique taxonomic names
+
+
+species_list <- species_df$TAXONOMIC  # converts to vector format so can be used in apply / mapping below to use function on all the species names in this vector
+length(species_list)
+
+
+
+
+
+# # Extract unique fish species taxonomic names - includes taxonomic names to family, genus, and species level
+# species_list <- na.omit(unique(bio_data_clean$TAXONOMIC))
+# length(species_list) ## returns 1,166 unique taxonomic names
+
+
+# # Extract unique fish species taxonomic names - ONLY fishes identified to species level - returns a list
+# species_df <- bio_data_clean[grep("\\b\\w+\\s\\w+\\b", bio_data_clean$TAXONOMIC), ]
+# species_list_2 <- unique(species_df$TAXONOMIC)
+# length(species_list_2) ## returns 847 unique taxonomic names
+
+```
+
+
+## Applying the gCOB function to all the unique fish species identified in the dataset
+
+```{r appy gCOB function to each unique fish species - calculate gCOB for all fish species}
 
 # Apply the fish_calculate_gCOB function to each unique species and combine results into a list
 result_list <- map(species_list, ~ fish_calculate_gCOB(taxonomic_column = "TAXONOMIC", species_name = .))
 
 
+# # Convert the species names to lowercase for case-insensitive matching
+# species_name <- tolower("Epinephelus morio")
+# 
+# # Find the index corresponding to the species name (case-insensitive)
+# index <- which(grepl(species_name, tolower(names(result_list))))
+# 
+# if (length(index) == 0) {
+#   # If no match is found, print an error message
+#   print("Species not found in the result list.")
+# } else {
+#   # Access the result for the first matching species
+#   species_result <- result_list[[index[1]]]
+# }
+# 
+# 
+# 
+# 
+# 
+# # Access the result for a specific species by its taxonomic name
+# # Convert the species names to lowercase for case-insensitive matching
+# species_name <- tolower("Epinephelus morio")
+# # Access the result for a specific species by its taxonomic name (case-insensitive)
+# species_result <- result_list[[which(tolower(names(result_list)) == species_name)]]
+# 
+# # Get the list of species names from the result_list
+# species_names <- names(result_list)
+
 ```
+
+
 
 
 ## Misspelled entries in the TAXONOMIC column - OR need to check for updated scientific names in FishBase
@@ -250,7 +363,7 @@ get_climate_zone <- function(species_name) {
   }
  
   # Extract climate zone information from the Environment text
-  climate_zones <- c("subtropical", "tropical", "temperate", "polar")
+  climate_zones <- c("subtropical", "tropical", "temperate", "polar", "deep-water")
   climate_zone <- NA
  
   for (zone in climate_zones) {
@@ -285,8 +398,28 @@ bio_data_clean <- bio_data_clean %>%
   mutate(TAXONOMIC = case_when((TAXONOMIC == "CENTROPRISTIS PHILADELPHICUS") ~ "Centropristis philadelphica", .default = TAXONOMIC))
 
 
+
+## the taxonomic name for the Bandtooth conger in the SEAMAP trawl data is currently "ARIOSOMA BELEARICUM", but on FishBase, the scientific name given is "Ariosoma balearicum"
+
+
+
+## the taxonomic name for the bearded brotula in the SEAMAP trawl data is currently "BROTULA BARBATUM", but on FishBase, the scientific name given is "Brotula barbata"
+
+
+
+
+
 ```
 
+
+
+Species Names in SEAMAP Trawl Data that do NOT align with FishBase Spellings:
+
+- ARIOSOMA BELEARICUM
+- BENTHODESMUS ATLANTICUS - no longer accepted, is now Benthodesmus simonyi
+- BROTULA BARBATUM -> Brotula barbata
+- CAELORINCHUS CARIBBAEUS -> Coelorinchus caribbaeus (and associated congeners)
+- CENTROPRISTIS PHILADELPHICUS -> Centropristis philadelphica
 
 
 ### Need to find a way to refine my list of fish species to do all my analyses and plotting for! >1000 unique fish 'species' is too many.
@@ -297,17 +430,12 @@ bio_data_clean <- bio_data_clean %>%
 
 ```{r loop through FishBase function to get information for every fish species}
 
+# Iterate through each unique fish species - use the species_list from above which only includes fishes identified to species level (847 species)
 
 # Initialize an empty data frame to store results
 species_climate_df <- data.frame(species_name = character(), climate_zone = character(), stringsAsFactors = FALSE)
 
-
-# Iterate through each unique fish species
-unique_species <- data.frame(TAXONOMIC = unique(bio_data_clean$TAXONOMIC)) %>% 
-  arrange(TAXONOMIC)
-
-
-for (species in unique_species) {
+for (species in species_list) {
   # Get the climate zone for the species
   climate_zone <- get_climate_zone(species)
   
@@ -315,11 +443,55 @@ for (species in unique_species) {
   species_climate_df <- rbind(species_climate_df, data.frame(species_name = species, climate_zone = climate_zone))
 }
 
-# Print the resulting data frame
-print(species_climate_df)
+# # Print the resulting data frame
+# print(species_climate_df)
+# 
+# # View the resulting data frame
+# view(species_climate_df)
 
-# View the resulting data frame
-view(species_climate_df)
+# Create csv file with species climate information
+write_csv(species_climate_df, file = "data/clean_data/species_climate_data.csv")
+
+
+# ## MAY NOT NEED TO DO THIS PART - THE ISSUE WAS WITH A SPECIES NAME THAT HAD A SLASH (/) IN IT 
+# 
+# # separate species_list into smaller lists to loop through so FishBase and for loop don't time out every time...
+# species_list_1_100 <- species_list[1:100]
+# species_list_101_200 <- species_list[101:200]
+# species_list_201_300 <- species_list[201:300]
+# species_list_301_400 <- species_list[301:400]
+# species_list_401_500 <- species_list[401:500]
+# species_list_501_600 <- species_list[501:600]
+# species_list_601_700 <- species_list[601:700]
+# species_list_701_800 <- species_list[701:800]
+# species_list_801_847 <- species_list[801:847]
+# 
+# species_chunks <- list(
+#   species_list_1_100 <- species_list[1:100],
+#   species_list_101_200 <- species_list[101:200],
+#   species_list_201_300 <- species_list[201:300],
+#   species_list_301_400 <- species_list[301:400],
+#   species_list_401_500 <- species_list[401:500],
+#   species_list_501_600 <- species_list[501:600],
+#   species_list_601_700 <- species_list[601:700],
+#   species_list_701_800 <- species_list[701:800],
+#   species_list_801_847 <- species_list[801:847]
+# )
+# 
+# 
+# # Initialize an empty data frame to store results
+# species_climate_df_test <- data.frame(species_name = character(), climate_zone = character(), stringsAsFactors = FALSE)
+# 
+# for(chunk in species_chunks){
+#   species_small <- chunk
+#   for (species in species_small) {
+#     # Get the climate zone for the species
+#     climate_zone <- get_climate_zone(species)
+#     
+#     # Append the species name and climate zone to the data frame
+#     species_climate_df_test <- rbind(species_climate_df_test, data.frame(species_name = species, climate_zone = climate_zone))
+#   }
+# }
 
 
 
