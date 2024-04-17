@@ -74,6 +74,8 @@ mass.csv.in(path = "data/seamap_trawls/")
 glimpse(BGSREC.csv)
 summary(BGSREC.csv)
 
+glimpse(NEWBIOCODESBIG.csv)
+
 
 glimpse(STAREC.csv)
 glimpse(CRUISES.csv)
@@ -111,7 +113,8 @@ colnames()
     -   170026004 is also listed for ANTHIAS WOODSI, but there's no other biocode associated with ANTHIAS TENUIS.
 -   So I am changing the occurrence of 170026003 that says ANTHIAS WOODSI to the biocode 170026004.
 -   Also, the other occurrence of ANTHIAS WOODSI does not have a common name associated with it, but there is a common name, so I'm going to add that in so both occurrences of ANTHIAS WOODSI will match now. I am also changing the Key1 ID values to the first Key1 value associated with ANTHIAS WOODSI, which is Key1 = 504.
--   I am making these changes to a new data frame (taxa_names), and keeping the NEWBIOCODESBIG.csv file AS IS.
+
+**-   I am making these changes to a new data frame (taxa_names), and keeping the NEWBIOCODESBIG.csv file AS IS.**
 
 ```{r taxanomic names data cleaning}
 
@@ -162,6 +165,50 @@ taxa_names[10331,] #this is the updated entry for ANTHIAS WOODSI, which is now d
 
 ```
 
+
+2. There are some misspelled taxonomic names that need to be fixed.
+
+- ALUTERUS HEUDELOTII is misspelled as ALUTERUS HEUDELOTTI. Each spelling also has their own unique biocode.
+
+
+```{r fixing misspelling of Aluterus heudelotii}
+
+# checking for occurrences of misspellings of this fish species (which I identified when making my fish species list in script "3_geographic_centers")
+filter(taxa_names, TAXONOMIC == "ALUTERUS HEUDELOTII") # BIO_BGS code is 189040407
+filter(taxa_names, BIO_BGS == 189040407)
+
+filter(taxa_names, TAXONOMIC == "ALUTERUS HEUDELOTTI")  # BIO_BGS code is 189040401
+
+## check for how many occurrences there are of this fish species (and misspellings) in the bio data set
+filter(BGSREC.csv, BIO_BGS == 189040407) # 120 instances of this biocode
+filter(BGSREC.csv, BIO_BGS == 189040401) # 351 instances of this biocode
+
+
+# change the entries for ALUTERUS HEUDELOTII in BGSREC.csv file that have the wrong biocode and taxonomic spelling associated with it. Also, add in the common name from FishBase.
+rev_BGSREC.csv <- BGSREC.csv %>% 
+  mutate(BIO_BGS = case_when((BIO_BGS == 189040401) ~ 189040407, .default = BIO_BGS))
+
+
+## check for how many occurrences there are of this fish species (and misspellings) in the revised bio data set
+filter(rev_BGSREC.csv, BIO_BGS == 189040407) # 471 instances of this biocode
+filter(rev_BGSREC.csv, BIO_BGS == 189040401) # 0 instances of this biocode
+
+
+# don't actually need to change the TAXONOMIC entries for Aluterus heudelotii in the taxa_names file because it won't match to anything in the BGSREC.csv file anymore
+# can still update the taxa_names dataframe to include a common name for this fish species, though
+taxa_names <- taxa_names %>% 
+  mutate(common_name = case_when((BIO_BGS == 189040407 & TAXONOMIC == "ALUTERUS HEUDELOTII") ~ "dotterel filefish", .default = common_name))
+
+
+# check for updates in the taxa_names dataframe
+filter(taxa_names, TAXONOMIC == "ALUTERUS HEUDELOTII") # yes, now has a common name associated with it
+filter(taxa_names, TAXONOMIC == "ALUTERUS HEUDELOTTI") # remains are before without a common name associated with it
+
+```
+
+
+
+
 ```{r subsetting CRUISES and STAREC data}
 
 # subset CRUISES
@@ -191,8 +238,13 @@ small_starec_data <- STAREC.csv %>%
 
 
 # 1. filter out invertebrates and remove extra columns I don't need from BGSREC.csc
-bio_data <- BGSREC.csv %>% 
-  filter(CATEGORY == 3) %>% 
+# bio_data <- BGSREC.csv %>%
+#   filter(CATEGORY == 3) %>%
+#   select(-CNT, -SAMPLE_BGS, -NODC_BGS, -TAXONID, -INVRECID)
+
+            # updated this code to use the rev_BGSREC.csv file which combines the misspelling of Aluterus heudelotti into one species
+bio_data <- rev_BGSREC.csv %>%
+  filter(CATEGORY == 3) %>%
   select(-CNT, -SAMPLE_BGS, -NODC_BGS, -TAXONID, -INVRECID)
 
 # 2. add the full scientific name for the fishes
@@ -336,7 +388,6 @@ length(which(is.na(bio_data$HAULVALUE) == TRUE))   # 221,882
 write_csv(bio_data, file = "data/clean_data/bio_data.csv")
 
 
-
 ```
 
 
@@ -365,30 +416,6 @@ ggplot(anchoa_data, aes(x = YR, y = CNTEXP, color = TAXONOMIC)) +
 
 ```
 
-
-
-
-# Visualize Data - Sampling Locations
-
-```{r}
-
-# library(leaflet)
-# 
-# 
-# # how can I filter out the excess data from bio_data so I only have one set of coordinates for each trawl station?
-# ## - the small_starec_data only has 1 row for each STATIONID.
-# 
-# trawl_locations <- inner_join(x = small_starec_data, y = bio_data, by = join_by(STATIONID))
-# # hmm this is still giving me ALL the rows....
-# # need to select out the unnecessary columns from bio_data?
-# 
-# 
-# trawl_locations_2 <- (small_starec_data$STATIONID == bio_data$STATIONID) == TRUE # this doesn't work...
-# 
-# 
-# leaflet(bio_data)
-
-```
 
 
 

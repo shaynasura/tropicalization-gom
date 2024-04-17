@@ -158,6 +158,19 @@ fish_calculate_gCOB(bio_data_clean,
 
 # Extract unique fish species taxonomic names
 species_list <- na.omit(unique(bio_data_clean$TAXONOMIC))
+length(species_list) ## returns 1,166 unique taxonomic names
+
+
+# Extract unique fish species taxonomic names - ONLY fishes identified to species level
+species_df <- bio_data_clean[grep("\\b\\w+\\s\\w+\\b", bio_data_clean$TAXONOMIC), ]
+species_list_2 <- unique(species_df$TAXONOMIC)
+length(species_list_2) ## returns 848 unique taxonomic names
+
+species_list_3 <- unique(bio_data_clean[grep("\\b\\w+\\s\\w+\\b", bio_data_clean$TAXONOMIC), "TAXONOMIC"]) %>% 
+  arrange(TAXONOMIC)
+
+## Misspelled entries in the TAXONOMIC column
+# - 
 
 # Apply the fish_calculate_gCOB function to each unique species and combine results into a list
 result_list <- map(species_list, ~ fish_calculate_gCOB(taxonomic_column = "TAXONOMIC", species_name = .))
@@ -165,6 +178,10 @@ result_list <- map(species_list, ~ fish_calculate_gCOB(taxonomic_column = "TAXON
 
 ```
 
+
+## Misspelled entries in the TAXONOMIC column - OR need to check for updated scientific names in FishBase
+ - ALUTERUS HEUDELOTTI, 	ALUTERUS HEUDELOTII
+ - APOGON ALUTUS,    ASTRAPOGON ALUTUS
 
 
 
