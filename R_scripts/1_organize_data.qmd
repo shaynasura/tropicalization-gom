@@ -102,110 +102,53 @@ colnames()
 
 ```
 
+
+
+
 ## Cleaning the SEAMAP Trawl Data
 
-1.  NEWBIOCODESBIG.csv file has 2 biocodes/codes that are duplicated for different taxa.
+### BIOCODES01182923.csv
+- category 1 is for fish (previously, category 3 was for fish)
 
--   CODES: 170026003 & 300000000
--   I am ignoring the 300000000 code because that's for invertebrates and not applicable for my research question.
--   I am changing one occurrence of 17002600***3*** to 17002600***4*** to match the species scientific name with the other occurrence of 170026004.
-    -   170026003 is listed for both ANTHIAS WOODSI and ANTHIAS TENUIS
-    -   170026004 is also listed for ANTHIAS WOODSI, but there's no other biocode associated with ANTHIAS TENUIS.
--   So I am changing the occurrence of 170026003 that says ANTHIAS WOODSI to the biocode 170026004.
--   Also, the other occurrence of ANTHIAS WOODSI does not have a common name associated with it, but there is a common name, so I'm going to add that in so both occurrences of ANTHIAS WOODSI will match now. I am also changing the Key1 ID values to the first Key1 value associated with ANTHIAS WOODSI, which is Key1 = 504.
 
-**-   I am making these changes to a new data frame (taxa_names), and keeping the NEWBIOCODESBIG.csv file AS IS.**
+### interesting that the new biocodes csv file does not have a column for common names...do I want to join that information in at some point? will need to pull it from the previous NEWBIOCODESBIG.csv file
 
-```{r taxanomic names data cleaning}
+
+```{r retrieving taxonomic names to join to biological data}
 
 # make a new df to easily join with the biological data and to remove extra columns I don't need.
-taxa_names <- NEWBIOCODESBIG.csv %>% 
-  select(Key1, TAXONOMIC, CODE, common_name) %>% 
-  rename(BIO_BGS = CODE)
+taxa_names <- BIOCODES01182023.csv %>%
+  filter(CATEGORY == 1) %>% 
+  select(BIOCODE, CIU_BIOCODE, TAXON, RANK, UPDATED_TAXON) %>% 
+  mutate(new_TAXON = case_when((UPDATED_TAXON != "NA") ~ UPDATED_TAXON, .default = TAXON)) %>% 
+  rename(BIO_BGS = BIOCODE)
+
+taxa_names_slim <- taxa_names %>% 
+  select(BIO_BGS, CIU_BIOCODE, RANK, new_TAXON)
 
 
-# check for duplicated entries for the Biocodes, which will create extra entries when I join the scientific names to the biological data
-which(duplicated(taxa_names$BIO_BGS))
-# 275 and 10015 are duplicated BIO_BGS codes in the taxa_names dataframe
+# # check for duplicated entries for the Biocodes, which will create extra entries when I join the scientific names to the biological data
+# which(duplicated(taxa_names$new_TAXON))
+# which(duplicated(taxa_names$BIO_BGS))
+# # 275 and 10015 are duplicated BIO_BGS codes in the taxa_names dataframe
+# 
+# 
+# # check the rows that have duplicates to retrieve the Biocodes for these duplicated rows
+# taxa_names[4074:4079,]
+# taxa_names[275,] #BIO_BGS is 170026003
+# taxa_names[10015,] #BIO_BGS is 300000000
+# 
+# # find all the entries with the biocodes that are duplicated and check surrounding biocodes
+# filter(taxa_names, BIO_BGS == 170026003)
+# 
+# 
+# # find all the entries with the two scientific names for this biocode to see if there's another biocode associated with either of these species
+# filter(taxa_names, TAXON == "ANTHIAS WOODSI")
+# filter(taxa_names, TAXON == "ANTHIAS TENUIS")
+# # ANTHIAS WOODSI has 2 different biocodes assigned to it, while ANTHIS TENUIS only has 1.
 
-
-# check the rows that have duplicates to retrieve the Biocodes for these duplicated rows
-taxa_names[275,] #BIO_BGS is 170026003
-taxa_names[10015,] #BIO_BGS is 300000000
-
-# find all the entries with the biocodes that are duplicated and check surrounding biocodes 
-filter(taxa_names, BIO_BGS == 170026003)
-filter(taxa_names, BIO_BGS == 300000000) # this is for inverts so I'm going to ignore this now.
-
-# find all the entries with the two scientific names for this biocode to see if there's another biocode associated with either of these species
-filter(taxa_names, TAXONOMIC == "ANTHIAS WOODSI")
-filter(taxa_names, TAXONOMIC == "ANTHIAS TENUIS")
-# ANTHIAS WOODSI has 2 different biocodes assigned to it, while ANTHIS TENUIS only has 1.
-
-# check the surrounding biocodes (as another way to detect what's being duplicated and how to correct it)
-filter(taxa_names, BIO_BGS == 170026004)
-filter(taxa_names, BIO_BGS == 170026002)
-
-# change the entry for ANTHIAS WOODSI that has the wrong biocode associated with it
-taxa_names <- taxa_names %>% 
-  mutate(BIO_BGS = case_when((BIO_BGS == 170026003 & TAXONOMIC == "ANTHIAS WOODSI") ~ 170026004, .default = BIO_BGS),
-         common_name = case_when((BIO_BGS == 170026004 & TAXONOMIC == "ANTHIAS WOODSI") ~ "swallowtail bass", .default = common_name),
-         Key1 = case_when((BIO_BGS == 170026004 & TAXONOMIC == "ANTHIAS WOODSI") ~ 504, .default = Key1))
-
-# double checking that the above mutate worked as expected.
-filter(taxa_names, TAXONOMIC == "ANTHIAS WOODSI")
-filter(taxa_names, BIO_BGS == 170026003)
-
-
-# check for duplicated entries for the Biocodes, which will create extra entries when I join the scientific names to the biological data
-which(duplicated(taxa_names$BIO_BGS))
-# 10015 and 10331 are duplicated BIO_BGS codes in the taxa_names dataframe
-
-taxa_names[10331,] #this is the updated entry for ANTHIAS WOODSI, which is now duplicated because we made the two entries match each other exactly. This will be okay for the join below.
 
 ```
-
-
-2. There are some misspelled taxonomic names that need to be fixed.
-
-- ALUTERUS HEUDELOTII is misspelled as ALUTERUS HEUDELOTTI. Each spelling also has their own unique biocode.
-
-
-```{r fixing misspelling of Aluterus heudelotii}
-
-# checking for occurrences of misspellings of this fish species (which I identified when making my fish species list in script "3_geographic_centers")
-filter(taxa_names, TAXONOMIC == "ALUTERUS HEUDELOTII") # BIO_BGS code is 189040407
-filter(taxa_names, BIO_BGS == 189040407)
-
-filter(taxa_names, TAXONOMIC == "ALUTERUS HEUDELOTTI")  # BIO_BGS code is 189040401
-
-## check for how many occurrences there are of this fish species (and misspellings) in the bio data set
-filter(BGSREC.csv, BIO_BGS == 189040407) # 120 instances of this biocode
-filter(BGSREC.csv, BIO_BGS == 189040401) # 351 instances of this biocode
-
-
-# change the entries for ALUTERUS HEUDELOTII in BGSREC.csv file that have the wrong biocode and taxonomic spelling associated with it. Also, add in the common name from FishBase.
-rev_BGSREC.csv <- BGSREC.csv %>% 
-  mutate(BIO_BGS = case_when((BIO_BGS == 189040401) ~ 189040407, .default = BIO_BGS))
-
-
-## check for how many occurrences there are of this fish species (and misspellings) in the revised bio data set
-filter(rev_BGSREC.csv, BIO_BGS == 189040407) # 471 instances of this biocode
-filter(rev_BGSREC.csv, BIO_BGS == 189040401) # 0 instances of this biocode
-
-
-# don't actually need to change the TAXONOMIC entries for Aluterus heudelotii in the taxa_names file because it won't match to anything in the BGSREC.csv file anymore
-# can still update the taxa_names dataframe to include a common name for this fish species, though
-taxa_names <- taxa_names %>% 
-  mutate(common_name = case_when((BIO_BGS == 189040407 & TAXONOMIC == "ALUTERUS HEUDELOTII") ~ "dotterel filefish", .default = common_name))
-
-
-# check for updates in the taxa_names dataframe
-filter(taxa_names, TAXONOMIC == "ALUTERUS HEUDELOTII") # yes, now has a common name associated with it
-filter(taxa_names, TAXONOMIC == "ALUTERUS HEUDELOTTI") # remains are before without a common name associated with it
-
-```
-
 
 
 
@@ -238,24 +181,15 @@ small_starec_data <- STAREC.csv %>%
 
 
 # 1. filter out invertebrates and remove extra columns I don't need from BGSREC.csc
-# bio_data <- BGSREC.csv %>%
-#   filter(CATEGORY == 3) %>%
-#   select(-CNT, -SAMPLE_BGS, -NODC_BGS, -TAXONID, -INVRECID)
-
-            # updated this code to use the rev_BGSREC.csv file which combines the misspelling of Aluterus heudelotti into one species
-bio_data <- rev_BGSREC.csv %>%
+bio_data <- BGSREC.csv %>%
   filter(CATEGORY == 3) %>%
   select(-CNT, -SAMPLE_BGS, -NODC_BGS, -TAXONID, -INVRECID)
 
+
+
 # 2. add the full scientific name for the fishes
 bio_data <- bio_data %>% 
-  left_join(taxa_names, join_by(BIO_BGS))
-
-# # check the bio_data df for the duplicated biocodes from above (ensure the issue was resolved)
-# filter(bio_data, BIO_BGS == 300000000)
-# filter(bio_data, BIO_BGS == 170026003)
-# filter(bio_data, BIO_BGS == 170026004) # interesting that this fish species wasn't even found in any of the trawls.
-# filter(bio_data, GENUS_BGS == "ANTHIAS")
+  left_join(taxa_names_slim, join_by(BIO_BGS))
 
 
 
@@ -263,7 +197,6 @@ bio_data <- bio_data %>%
 bio_data <- bio_data %>% 
   left_join(year_data, join_by(CRUISEID)) %>% 
   left_join(small_starec_data, join_by(STATIONID))
-
 
 
 ## checking to make sure the bio_data dataframe contains data up to 2023
@@ -275,24 +208,11 @@ max(BGSREC.csv$CRUISEID)
 # data_2023 <- year_data %>% 
 #   filter(YR == "2023"| YR == "2022" |YR == "2021" | YR == "2020")
 # 
-# 
 # small_starec_2023 <- small_starec_data %>% 
 #   filter(MO_DAY_YR > "2023-01-01")
-# 
-# cruises_1129_1130_check <-  small_starec_data %>% 
-#   filter(CRUISEID > 1127)
-# 
-# 
+
 # small_starec_2021 <- small_starec_data %>% 
 #   filter(MO_DAY_YR > "2021-01-01")
-# 
-# bio_data_2023 <- bio_data %>% 
-#   filter(CRUISEID > 1100)
-# 
-# max(bio_data$CRUISEID.x)
-# max(BGSREC.csv$CRUISEID)
-
-
 
 
 
@@ -315,7 +235,6 @@ length(which((bio_data$CRUISE_NO.x == (bio_data$CRUISE_NO.y)) == "FALSE"))
 
 
 
-
 ## remove the extra CRUISEID and CRUISE_NO columns to streamline data table
 bio_data <- bio_data %>% 
   select(-CRUISEID.y, -CRUISE_NO.y) %>% 
@@ -325,6 +244,8 @@ bio_data <- bio_data %>%
 ## relocate columns in bio_data to have important variables towards the left side of the data table
 # bio_data <- bio_data %>% 
 #   relocate()
+
+
 
 
 # 5. add the HAULVALUE codes
@@ -342,9 +263,10 @@ bio_data <- bio_data %>%
 unique(bio_data$HAULVALUE)
 length(which(bio_data$HAULVALUE == "G"))   # 361,748 
 length(which(bio_data$HAULVALUE == "B"))   # 41
-length(which(is.na(bio_data$HAULVALUE) == TRUE))   # 221,882
+length(which(is.na(bio_data$HAULVALUE) == TRUE))   # 221,882   # 222,994 on April 18, 2024
 
 361748+41+221882  # sum is 583,671 which is the length of bio_data
+361748+41+222994  # sum is 584,783 which is the length of bio_data on April 18, 2024
 
 # bad_hauls <- bio_data %>% 
 #   filter(HAULVALUE != "G")
@@ -393,30 +315,118 @@ write_csv(bio_data, file = "data/clean_data/bio_data.csv")
 
 
 
-# Visualize Data
-
-```{r}
-
-length(unique(bio_data$TAXONOMIC)) # 1059 unique taxonomic values
-length(unique(bio_data$GENUS_BGS)) # 487 unique genus values
 
 
-# sort(unique(bio_data$TAXONOMIC)) # taking a peek to see if there are problems with things being duplicated from misspellings - does not appear to be the case.
 
 
-# try things with a subset of data...
-
-anchoa_data <- bio_data %>% 
-  filter(GENUS_BGS == "ANCHOA")
 
 
-ggplot(anchoa_data, aes(x = YR, y = CNTEXP, color = TAXONOMIC)) +
-  geom_line() +
-  facet_wrap(~TAXONOMIC)
+
+
+# OLD CODE FOR CLEANING SEAMAP DATA - shouldn't have to do this anymore because have an updated file with CIU_BIOCODES
+
+
+1.  NEWBIOCODESBIG.csv file has 2 biocodes/codes that are duplicated for different taxa.
+
+-   CODES: 170026003 & 300000000
+-   I am ignoring the 300000000 code because that's for invertebrates and not applicable for my research question.
+-   I am changing one occurrence of 17002600***3*** to 17002600***4*** to match the species scientific name with the other occurrence of 170026004.
+    -   170026003 is listed for both ANTHIAS WOODSI and ANTHIAS TENUIS
+    -   170026004 is also listed for ANTHIAS WOODSI, but there's no other biocode associated with ANTHIAS TENUIS.
+-   So I am changing the occurrence of 170026003 that says ANTHIAS WOODSI to the biocode 170026004.
+-   Also, the other occurrence of ANTHIAS WOODSI does not have a common name associated with it, but there is a common name, so I'm going to add that in so both occurrences of ANTHIAS WOODSI will match now. I am also changing the Key1 ID values to the first Key1 value associated with ANTHIAS WOODSI, which is Key1 = 504.
+
+**-   I am making these changes to a new data frame (taxa_names), and keeping the NEWBIOCODESBIG.csv file AS IS.**
+
+```{r taxanomic names data cleaning}
+
+# # make a new df to easily join with the biological data and to remove extra columns I don't need.
+# taxa_names <- NEWBIOCODESBIG.csv %>% 
+#   select(Key1, TAXONOMIC, CODE, common_name) %>% 
+#   rename(BIO_BGS = CODE)
+# 
+# 
+# # check for duplicated entries for the Biocodes, which will create extra entries when I join the scientific names to the biological data
+# which(duplicated(taxa_names$BIO_BGS))
+# # 275 and 10015 are duplicated BIO_BGS codes in the taxa_names dataframe
+# 
+# 
+# # check the rows that have duplicates to retrieve the Biocodes for these duplicated rows
+# taxa_names[275,] #BIO_BGS is 170026003
+# taxa_names[10015,] #BIO_BGS is 300000000
+# 
+# # find all the entries with the biocodes that are duplicated and check surrounding biocodes 
+# filter(taxa_names, BIO_BGS == 170026003)
+# filter(taxa_names, BIO_BGS == 300000000) # this is for inverts so I'm going to ignore this now.
+# 
+# # find all the entries with the two scientific names for this biocode to see if there's another biocode associated with either of these species
+# filter(taxa_names, TAXONOMIC == "ANTHIAS WOODSI")
+# filter(taxa_names, TAXONOMIC == "ANTHIAS TENUIS")
+# # ANTHIAS WOODSI has 2 different biocodes assigned to it, while ANTHIS TENUIS only has 1.
+# 
+# # check the surrounding biocodes (as another way to detect what's being duplicated and how to correct it)
+# filter(taxa_names, BIO_BGS == 170026004)
+# filter(taxa_names, BIO_BGS == 170026002)
+# 
+# # change the entry for ANTHIAS WOODSI that has the wrong biocode associated with it
+# taxa_names <- taxa_names %>% 
+#   mutate(BIO_BGS = case_when((BIO_BGS == 170026003 & TAXONOMIC == "ANTHIAS WOODSI") ~ 170026004, .default = BIO_BGS),
+#          common_name = case_when((BIO_BGS == 170026004 & TAXONOMIC == "ANTHIAS WOODSI") ~ "swallowtail bass", .default = common_name),
+#          Key1 = case_when((BIO_BGS == 170026004 & TAXONOMIC == "ANTHIAS WOODSI") ~ 504, .default = Key1))
+# 
+# # double checking that the above mutate worked as expected.
+# filter(taxa_names, TAXONOMIC == "ANTHIAS WOODSI")
+# filter(taxa_names, BIO_BGS == 170026003)
+# 
+# 
+# # check for duplicated entries for the Biocodes, which will create extra entries when I join the scientific names to the biological data
+# which(duplicated(taxa_names$BIO_BGS))
+# # 10015 and 10331 are duplicated BIO_BGS codes in the taxa_names dataframe
+# 
+# taxa_names[10331,] #this is the updated entry for ANTHIAS WOODSI, which is now duplicated because we made the two entries match each other exactly. This will be okay for the join below.
 
 ```
 
 
+2. There are some misspelled taxonomic names that need to be fixed.
+
+- ALUTERUS HEUDELOTII is misspelled as ALUTERUS HEUDELOTTI. Each spelling also has their own unique biocode.
+
+
+```{r fixing misspelling of Aluterus heudelotii}
+
+# # checking for occurrences of misspellings of this fish species (which I identified when making my fish species list in script "3_geographic_centers")
+# filter(taxa_names, TAXONOMIC == "ALUTERUS HEUDELOTII") # BIO_BGS code is 189040407
+# filter(taxa_names, BIO_BGS == 189040407)
+# 
+# filter(taxa_names, TAXONOMIC == "ALUTERUS HEUDELOTTI")  # BIO_BGS code is 189040401
+# 
+# ## check for how many occurrences there are of this fish species (and misspellings) in the bio data set
+# filter(BGSREC.csv, BIO_BGS == 189040407) # 120 instances of this biocode
+# filter(BGSREC.csv, BIO_BGS == 189040401) # 351 instances of this biocode
+# 
+# 
+# # change the entries for ALUTERUS HEUDELOTII in BGSREC.csv file that have the wrong biocode and taxonomic spelling associated with it. Also, add in the common name from FishBase.
+# rev_BGSREC.csv <- BGSREC.csv %>% 
+#   mutate(BIO_BGS = case_when((BIO_BGS == 189040401) ~ 189040407, .default = BIO_BGS))
+# 
+# 
+# ## check for how many occurrences there are of this fish species (and misspellings) in the revised bio data set
+# filter(rev_BGSREC.csv, BIO_BGS == 189040407) # 471 instances of this biocode
+# filter(rev_BGSREC.csv, BIO_BGS == 189040401) # 0 instances of this biocode
+# 
+# 
+# # don't actually need to change the TAXONOMIC entries for Aluterus heudelotii in the taxa_names file because it won't match to anything in the BGSREC.csv file anymore
+# # can still update the taxa_names dataframe to include a common name for this fish species, though
+# taxa_names <- taxa_names %>% 
+#   mutate(common_name = case_when((BIO_BGS == 189040407 & TAXONOMIC == "ALUTERUS HEUDELOTII") ~ "dotterel filefish", .default = common_name))
+# 
+# 
+# # check for updates in the taxa_names dataframe
+# filter(taxa_names, TAXONOMIC == "ALUTERUS HEUDELOTII") # yes, now has a common name associated with it
+# filter(taxa_names, TAXONOMIC == "ALUTERUS HEUDELOTTI") # remains are before without a common name associated with it
+
+```
 
 
 
