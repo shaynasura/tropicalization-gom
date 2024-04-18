@@ -1,0 +1,270 @@
+---
+title: "3_species_info"
+author: "Shayna A. Sura"
+format: html
+---
+
+## Refining list of fish species & gathering information on their climate zone preferences from FishBase
+
+
+
+```{r setup}
+
+library(tidyverse) # includes and loads the packages listed below
+# library(readr)
+# library(tidyr)
+# library(dplyr)
+# library(ggplot2)
+# library(lubridate)
+
+library(here) # helps with paths for files
+
+library(purrr)
+
+library(rvest) #for web scraping
+library(xml2)
+library(stringr)
+
+
+```
+
+
+
+```{r reading in cleaned bio data}
+#| echo: false
+#| message: false
+
+bio_data_clean <- read_csv(file = "data/clean_data/bio_data.csv")
+
+# head(bio_data_clean)
+
+```
+
+
+
+## Misspelled entries in the TAXONOMIC column - OR need to check for updated scientific names in FishBase
+ - ALUTERUS HEUDELOTTI, 	ALUTERUS HEUDELOTII
+
+
+
+
+## Species Names in SEAMAP Trawl Data that do NOT align with FishBase Spellings:
+
+- APOGON ALUTUS -> ASTRAPOGON ALUTUS
+- ARIOSOMA BELEARICUM
+- BENTHODESMUS ATLANTICUS - no longer accepted, is now Benthodesmus simonyi
+- BROTULA BARBATUM -> Brotula barbata
+- CAELORINCHUS CARIBBAEUS -> Coelorinchus caribbaeus (and associated congeners)
+- CENTROPRISTIS PHILADELPHICUS -> Centropristis philadelphica
+
+
+
+
+
+
+### Refine list of fish species to do all analyses and plotting for! >1000 unique fish 'species' is too many.
+ - only keep unique TAXONOMIC entries that have 2 words (Genus species) versus just 1 word (family or genus level only)
+
+
+```{r extract unique fish species names}
+
+# Extract unique fish species taxonomic names - ONLY fishes identified to species level - returns a dataframe
+## need to remove the occurrence of CALAMUS PRORIDENS/NODOSUS in the fish species list because it causes problems when trying to scrape data from FishBase
+
+species_df <- unique(bio_data_clean[grep("\\b\\w+\\s\\w+\\b", bio_data_clean$TAXONOMIC), "TAXONOMIC"]) %>% 
+  filter(TAXONOMIC != "CALAMUS PRORIDENS/NODOSUS") %>% 
+  arrange(TAXONOMIC)
+
+
+dim(species_df)  ## returns 846 unique taxonomic names
+
+
+species_list <- species_df$TAXONOMIC  # converts to vector format so can be used in apply / mapping below to use function on all the species names in this vector
+length(species_list)
+
+
+
+
+
+# # Extract unique fish species taxonomic names - includes taxonomic names to family, genus, and species level
+# species_list <- na.omit(unique(bio_data_clean$TAXONOMIC))
+# length(species_list) ## returns 1,166 unique taxonomic names
+
+
+# # Extract unique fish species taxonomic names - ONLY fishes identified to species level - returns a list
+# species_df <- bio_data_clean[grep("\\b\\w+\\s\\w+\\b", bio_data_clean$TAXONOMIC), ]
+# species_list_2 <- unique(species_df$TAXONOMIC)
+# length(species_list_2) ## returns 847 unique taxonomic names
+
+```
+
+
+
+## (future) Write code to check list of fish species scientific names versus what is currently accepted in FishBase
+### don't do this for now - this information is being updated in the SEAMAP trawl databases
+### in the R script "1_organize_data.qmd", we check the UPDATED_TAXON column for an updated scientific name for fish species
+#### SEAMAP organizers have updated the information for Centropristis philadelphicus, but not for all species I've identified above yet.
+
+```{r manually updated fish scientific names}
+
+# 
+# ## the taxonomic name for the Rock Sea Bass in the SEAMAP trawl data is currently "CENTROPRISTIS PHILADELPHICUS", but on FishBase, the scientific name given is "Centropristis philadelphica"
+# 
+# bio_data_clean <- bio_data_clean %>% 
+#   mutate(TAXONOMIC = case_when((TAXONOMIC == "CENTROPRISTIS PHILADELPHICUS") ~ "Centropristis philadelphica", .default = TAXONOMIC))
+# 
+# 
+# ## the taxonomic name for the Bandtooth conger in the SEAMAP trawl data is currently "ARIOSOMA BELEARICUM", but on FishBase, the scientific name given is "Ariosoma balearicum"
+# 
+# 
+# 
+# ## the taxonomic name for the bearded brotula in the SEAMAP trawl data is currently "BROTULA BARBATUM", but on FishBase, the scientific name given is "Brotula barbata"
+# 
+
+```
+
+
+
+
+
+
+
+
+
+# FishBase Function - scrape information from FishBase to determine the climate zone information for each fish species.
+
+## side note - the rfishbase package looks helpful for extracting most information from FishBase. Unfortunately, the information I need to extract is not found in a table, so this package doesn't work for me.
+
+
+```{r web scraping FishBase for fish species distribution information}
+
+
+# library(rvest)
+# library(xml2)
+# library(stringr)
+
+# Function to scrape climate zone information from FishBase
+get_climate_zone <- function(species_name) {
+  # Construct the URL for the FishBase search page
+  base_url <- "https://www.fishbase.se/summary/"
+  search_url <- paste0(base_url, gsub(" ", "-", tolower(species_name)))
+ 
+  # Fetch the HTML content of the search page
+  search_page <- read_html(search_url)
+ 
+  # Find the <h1> element containing the word "Environment" and get the following sibling <div>
+  environment_section <- search_page %>%
+    html_elements(xpath = "//h1[contains(translate(., 'ENVIRONMENT', 'environment'), 'environment')]/following-sibling::div[1]") %>%
+    html_text(trim = TRUE) %>%
+    tolower()
+ 
+  # Check if environment information is found
+  if (length(environment_section) == 0) {
+    warning(paste("No environment information found for the species:", species_name))
+    return(NA)
+  }
+ 
+  # Extract climate zone information from the Environment text
+  climate_zones <- c("subtropical", "tropical", "temperate", "polar", "deep-water")
+  climate_zone <- NA
+ 
+  for (zone in climate_zones) {
+    if (str_detect(environment_section, fixed(zone, ignore_case = TRUE))) {
+      climate_zone <- zone
+      break
+    }
+  }
+ 
+  # Print environment text for diagnostics
+  cat("Environment Text:", environment_section, "\n")
+ 
+  # Return climate zone information
+  return(climate_zone)
+}
+
+# Test the function for "Epinephelus morio"
+species_name <- "Epinephelus morio"
+climate_zone <- get_climate_zone(species_name)
+print(climate_zone)
+
+
+```
+
+
+
+```{r loop through FishBase function to get information for every fish species}
+
+# Iterate through each unique fish species - use the species_list from above which only includes fishes identified to species level (847 species)
+
+# Initialize an empty data frame to store results
+species_climate_df <- data.frame(species_name = character(), climate_zone = character(), stringsAsFactors = FALSE)
+
+for (species in species_list) {
+  # Get the climate zone for the species
+  climate_zone <- get_climate_zone(species)
+  
+  # Append the species name and climate zone to the data frame
+  species_climate_df <- rbind(species_climate_df, data.frame(species_name = species, climate_zone = climate_zone))
+}
+
+# # Print the resulting data frame
+# print(species_climate_df)
+# 
+# # View the resulting data frame
+# view(species_climate_df)
+
+# Create csv file with species climate information
+write_csv(species_climate_df, file = "data/clean_data/species_climate_data.csv")
+
+
+# ## MAY NOT NEED TO DO THIS PART - THE ISSUE WAS WITH A SPECIES NAME THAT HAD A SLASH (/) IN IT 
+# 
+# # separate species_list into smaller lists to loop through so FishBase and for loop don't time out every time...
+# species_list_1_100 <- species_list[1:100]
+# species_list_101_200 <- species_list[101:200]
+# species_list_201_300 <- species_list[201:300]
+# species_list_301_400 <- species_list[301:400]
+# species_list_401_500 <- species_list[401:500]
+# species_list_501_600 <- species_list[501:600]
+# species_list_601_700 <- species_list[601:700]
+# species_list_701_800 <- species_list[701:800]
+# species_list_801_847 <- species_list[801:847]
+# 
+# species_chunks <- list(
+#   species_list_1_100 <- species_list[1:100],
+#   species_list_101_200 <- species_list[101:200],
+#   species_list_201_300 <- species_list[201:300],
+#   species_list_301_400 <- species_list[301:400],
+#   species_list_401_500 <- species_list[401:500],
+#   species_list_501_600 <- species_list[501:600],
+#   species_list_601_700 <- species_list[601:700],
+#   species_list_701_800 <- species_list[701:800],
+#   species_list_801_847 <- species_list[801:847]
+# )
+# 
+# 
+# # Initialize an empty data frame to store results
+# species_climate_df_test <- data.frame(species_name = character(), climate_zone = character(), stringsAsFactors = FALSE)
+# 
+# for(chunk in species_chunks){
+#   species_small <- chunk
+#   for (species in species_small) {
+#     # Get the climate zone for the species
+#     climate_zone <- get_climate_zone(species)
+#     
+#     # Append the species name and climate zone to the data frame
+#     species_climate_df_test <- rbind(species_climate_df_test, data.frame(species_name = species, climate_zone = climate_zone))
+#   }
+# }
+
+
+
+
+```
+
+
+
+
+
+
+
