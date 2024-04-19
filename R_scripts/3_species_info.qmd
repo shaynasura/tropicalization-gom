@@ -42,7 +42,7 @@ bio_data_clean <- read_csv(file = "data/clean_data/bio_data.csv")
 
 
 
-## Misspelled entries in the TAXONOMIC column - OR need to check for updated scientific names in FishBase
+## Misspelled entries in the TAXONOMIC column - should eventually be fixed with the CIU_BIOCODES and new_TAXON columns from 1_organize_data script...still have one misspelling version of Aluterus heudelotii that is not linked to an UPDATED_TAXON name change in the recent biocodes file (BIOCODES01182023.csv)
  - ALUTERUS HEUDELOTTI, 	ALUTERUS HEUDELOTII
 
 
@@ -63,27 +63,38 @@ bio_data_clean <- read_csv(file = "data/clean_data/bio_data.csv")
 
 
 ### Refine list of fish species to do all analyses and plotting for! >1000 unique fish 'species' is too many.
- - only keep unique TAXONOMIC entries that have 2 words (Genus species) versus just 1 word (family or genus level only)
+
+- only keep the unique new_TAXON entries that are identified to the SPECIES rank level
+- arrange in alphabetical order
+
+(previously) - only keep unique TAXONOMIC entries that have 2 words (Genus species) versus just 1 word (family or genus level only)
 
 
 ```{r extract unique fish species names}
 
 # Extract unique fish species taxonomic names - ONLY fishes identified to species level - returns a dataframe
-## need to remove the occurrence of CALAMUS PRORIDENS/NODOSUS in the fish species list because it causes problems when trying to scrape data from FishBase
 
-species_df <- unique(bio_data_clean[grep("\\b\\w+\\s\\w+\\b", bio_data_clean$TAXONOMIC), "TAXONOMIC"]) %>% 
-  filter(TAXONOMIC != "CALAMUS PRORIDENS/NODOSUS") %>% 
-  arrange(TAXONOMIC)
-
-
-dim(species_df)  ## returns 846 unique taxonomic names
+species_df <- bio_data_clean %>% 
+  select(new_TAXON, RANK) %>% 
+  filter(RANK == "SPECIES") %>% 
+  distinct(new_TAXON, .keep_all = TRUE) %>% 
+  arrange(new_TAXON)
 
 
-species_list <- species_df$TAXONOMIC  # converts to vector format so can be used in apply / mapping below to use function on all the species names in this vector
+dim(species_df)  ## returns 850 unique taxonomic names
+
+
+species_list <- species_df$new_TAXON  # converts to vector format so can be used in apply / mapping below to use function on all the species names in this vector
 length(species_list)
 
 
 
+
+# ## need to remove the occurrence of CALAMUS PRORIDENS/NODOSUS in the fish species list because it causes problems when trying to scrape data from FishBase
+# 
+# species_df <- unique(bio_data_clean[grep("\\b\\w+\\s\\w+\\b", bio_data_clean$new_TAXON), "new_TAXON"]) %>% 
+#   # filter(TAXONOMIC != "CALAMUS PRORIDENS/NODOSUS") %>% 
+#   arrange(new_TAXON)
 
 
 # # Extract unique fish species taxonomic names - includes taxonomic names to family, genus, and species level
@@ -115,7 +126,6 @@ length(species_list)
 # 
 # 
 # ## the taxonomic name for the Bandtooth conger in the SEAMAP trawl data is currently "ARIOSOMA BELEARICUM", but on FishBase, the scientific name given is "Ariosoma balearicum"
-# 
 # 
 # 
 # ## the taxonomic name for the bearded brotula in the SEAMAP trawl data is currently "BROTULA BARBATUM", but on FishBase, the scientific name given is "Brotula barbata"
