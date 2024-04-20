@@ -247,7 +247,9 @@ species_names <- names(species_gCOBs)
 ```{r test for linear trends of gCOB for lionfish}
 
 ggplot(cg, aes(longitude, latitude)) +
-  geom_point(aes(colour = year))
+  geom_point(aes(colour = year),
+                 size = 5
+             )
 
 
 ggplot(cg, aes(year, longitude)) +
@@ -432,12 +434,13 @@ individual_trends_results <- map(species_list, ~ test_gCOBs_over_time(species_na
   - start by examining frequency of latitude models with p-values < 0.05 indicating a significant trend over time
   - examine frequency of longitude models with p-values < 0.05 (indicating a significant trend over time)
 
+## Double check these meanings with someone else!!! ##
 - Latitude Meanings
-  - positive coefficient estimate for latitude indicates...
-  - negative coefficient estimate for latitude indicates...
+  - positive coefficient estimate for latitude indicates northward shift.
+  - negative coefficient estimate for latitude indicates southward shift.
 - Longitude Meanings
-  - positive coefficient estimate for longitude indicates...
-  - negative coefficient estimate for longitude indicates...
+  - positive coefficient estimate for longitude indicates eastward shift.
+  - negative coefficient estimate for longitude indicates westward shift.
 
 
 ```{r}
@@ -458,8 +461,28 @@ climate_gCOB_trends_slim <- climate_gCOB_trends %>%
 
 # 3. group by climate zone information...
 
+tropical_sp <- climate_gCOB_trends_slim %>% 
+  filter(climate_zone == "tropical")
+
+subtropical_sp <- climate_gCOB_trends_slim %>% 
+  filter(climate_zone == "subtropical")
+
+deepwater_sp <- climate_gCOB_trends_slim %>% 
+  filter(climate_zone == "deep-water")
 
 
+significant_pvalues <- climate_gCOB_trends_slim %>% 
+  group_by(climate_zone) %>% 
+  summarize(n = n(),
+            num_sig_pvalues_lat = length(which(latitude_pvalue < 0.05)),
+            num_sig_pvalues_long = length(which(longitude_pvalue < 0.05)),
+            num_sig_lat_shift_north = length(which(latitude_pvalue < 0.05 & latitude_year_coef > 0)),
+            num_sig_lat_shift_south = length(which(latitude_pvalue < 0.05 & latitude_year_coef < 0)),
+            num_sig_long_shift_west = length(which(longitude_pvalue < 0.05 & longitude_year_coef < 0)),
+            num_sig_long_shift_east = length(which(longitude_pvalue < 0.05 & longitude_year_coef > 0))
+  )
+            
+significant_pvalues
 
 
 
@@ -470,8 +493,39 @@ climate_gCOB_trends_slim <- climate_gCOB_trends %>%
 
 ```{r}
 
+
+ggplot(data = climate_gCOB_trends_slim,
+       mapping = aes(x = latitude_pvalue,
+                     fill = climate_zone)) +
+  geom_histogram(binwidth = 0.005) +
+  geom_vline(aes(xintercept = 0.05), color = "red", linewidth = 1) +
+  # xlim(0,0.1) +
+  # ylim(0,20) + 
+  facet_wrap(~climate_zone)
+
+
+
+ggplot(data = climate_gCOB_trends_slim,
+       mapping = aes(x = longitude_pvalue,
+                     fill = climate_zone)) +
+  geom_histogram(binwidth = 0.01) +
+  facet_wrap(~climate_zone)
+
+
 ```
 
 
+```{r}
+
+ggplot(data = climate_gCOB_trends_slim,
+       mapping = aes(x = latitude_year_coef,
+                     fill = climate_zone)) +
+  geom_histogram() +
+  geom_vline(aes(xintercept = 0), color = "red", linewidth = 1) +
+  # xlim(0,0.1) +
+  # ylim(0,20) + 
+  facet_wrap(~climate_zone)
+
+```
 
 

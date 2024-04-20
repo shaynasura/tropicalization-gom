@@ -1,17 +1,10 @@
 ---
-title: "5_map_stations"
+title: "6_map_environment"
 author: "Shayna A. Sura"
 format: html
 ---
 
-## Mapping the SEAMAP Trawl stations over time
-
-```{r setup}
-
-
-```
-
-
+## 
 
 
 ```{r load packages}
@@ -132,28 +125,30 @@ base_map <- ggplot(data = world_base_map,
 ```
 
 
-
-### Revise these maps and use the STAREC.csv raw data instead of the biological data to prevent duplication of station data points - because, currently, I am plotting the station data for each trawl multiple times (i.e., for each species caught in that trawl).
+### Revise these maps and use the STAREC.csv raw data instead of the biological data to prevent duplication of temperature data points - because, currently, I am plotting the temperature data for each trawl multiple times (i.e., for each species caught in that trawl).
 
 ```{r}
 
-station_maps <- base_map +
+temperature_map <- base_map +
   geom_point(data = bio_data_clean,
-             na.rm = FALSE,
+             na.rm = TRUE,      ## need to figure out why this is not working here - probably need to move this to a different location to specify which column to use for removing NA values
              aes(x = DECSLON,
                  y = DECSLAT,
                  group = NA,
-                 fill = YR),
+                 fill = TEMP_SSURF),
              size = 1.5,
              shape = 21,
              color = "black",
              stroke = 0.1) +
-    scale_fill_gradient(low = "darkgray",
-                       high = "beige",
-                       limits = c(),
-                       # breaks = c(),
-                       # labels = c(),
-                       name = "Year") +
+    # scale_fill_gradient(colours = "viridis",
+    #                    #  low = "white",
+    #                    # high = "red",
+    #                    limits = c(5, 35),
+    #                    # breaks = c(),
+    #                    # labels = c(),
+    #                    name = "Temperature\nCelsius") +
+  scale_fill_viridis_b(limits = c(5,35),
+                       name = "Temperature\nCelsius") +
   theme(text = element_text(family = "Times",
                             size = 14),
         plot.title = element_text(face = "bold"),
@@ -167,48 +162,9 @@ station_maps <- base_map +
   facet_wrap(~YR)
 
 
-station_maps
-
-
-```
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-# Visualize Data - Sampling Locations
-
-```{r}
-
-# library(leaflet)
-# 
-# 
-# # how can I filter out the excess data from bio_data so I only have one set of coordinates for each trawl station?
-# ## - the small_starec_data only has 1 row for each STATIONID.
-# 
-# trawl_locations <- inner_join(x = small_starec_data, y = bio_data, by = join_by(STATIONID))
-# # hmm this is still giving me ALL the rows....
-# # need to select out the unnecessary columns from bio_data?
-# 
-# 
-# trawl_locations_2 <- (small_starec_data$STATIONID == bio_data$STATIONID) == TRUE # this doesn't work...
-# 
-# 
-# leaflet(bio_data)
+temperature_map
 
 ```
-
-
 
 
 
