@@ -97,7 +97,15 @@ species_gCOBs[["lionfish_gCOB_test"]]
 
 ```{r function to calculate gCOB for species}
 
+# create an empty list to store cg dataframe
+species_gCOBs <- list()
+yr2010_2022_m687_gCOBs <- list()
+
+
+
+# function to calculate gCOBs for fish species
 fish_calculate_gCOB <- function(data = bio_data_clean,
+                                output_name = "species_gCOBs",
                                 taxonomic_column = "new_TAXON",
                                 # taxonomic_column = "TAXONOMIC",
                                 common_name_column = "common_name",
@@ -114,7 +122,7 @@ fish_calculate_gCOB <- function(data = bio_data_clean,
   # determine the specific years where fish appeared in trawl(s)
   unique_years <- unique(species_data$YR)
 
-  # initate empty data frame to store data in
+  # initiate empty data frame to store data in
   cg <- data.frame(year = unique_years,
                    latitude = NA,
                    longitude = NA)
@@ -137,13 +145,15 @@ fish_calculate_gCOB <- function(data = bio_data_clean,
   cg <- cg %>% arrange(year)
   
   # Get the existing list from the global environment
-  global_species_gCOBs <- get("species_gCOBs", envir = .GlobalEnv)  
+  # global_species_gCOBs <- get("species_gCOBs", envir = .GlobalEnv)
+    global_species_gCOBs <- get(output_name, envir = .GlobalEnv)
   
   # Assign the cg dataframe with gCOB values the name of the fish species and add to the global_species_gCOBs list
   global_species_gCOBs[[paste(species_name, "_gCOB", sep = "")]] <- cg
   
   # Assign the modified list back to the global environment
-  assign("species_gCOBs", global_species_gCOBs, envir = .GlobalEnv)  
+  # assign("species_gCOBs", global_species_gCOBs, envir = .GlobalEnv)
+    assign(output_name, global_species_gCOBs, envir = .GlobalEnv) 
 
   # # Assign the cg dataframe with gCOB values to a variable with a name that includes the species name
   # assign(paste(species_name, "_gCOB", sep = ""), cg, envir = .GlobalEnv)
@@ -168,9 +178,28 @@ fish_calculate_gCOB(bio_data_clean,
                     species_name = "Pterois")
 
 
+
+Epinephelus_morio_gCOBs <- list()
+
 fish_calculate_gCOB(bio_data_clean,
+                    output_name = "Epinephelus_morio_gCOBs",
                     taxonomic = "new_TAXON",
                     species_name = "Epinephelus morio")
+
+
+# PSEUDOBATOS LENTIGINOSUS
+Pseudobatos_lentiginosus_gCOBs <- list()
+
+fish_calculate_gCOB(yr2010_2022_m678_clean_bio_data,
+                    output_name = "Pseudobatos_lentiginosus_gCOBs",
+                    taxonomic = "new_TAXON",
+                    species_name = "Pseudobatos lentiginosus")
+
+
+fish_calculate_gCOB(yr2010_2022_m678_clean_bio_data,
+                    output_name = "Epinephelus_morio_gCOBs",
+                    taxonomic = "new_TAXON",
+                    species_name = "Pseudobatos lentiginosus")
 
 ```
 
@@ -190,17 +219,47 @@ fish_calculate_gCOB(bio_data_clean,
 
 ```{r appy gCOB function to each unique fish species - calculate gCOB for all fish species}
 
-# create an empty list to store cg dataframes
+# create an empty list to store cg dataframe
 species_gCOBs <- list()
 
 
 # Apply the fish_calculate_gCOB function to each unique species and combine results into a list
 result_list <- map(species_list, ~ fish_calculate_gCOB(taxonomic_column = "new_TAXON", species_name = .))
 
+
+# Applying the gCOB calculate function to each unique species for the dataset only containing 2010 - 2022 data
+
+post2010_species_list # set up in 3_species_info script
+yr2010_2022_m687_species_list # set up in 3_species_info script
+
+# create an empty list to store cg dataframe
+yr2010_2022_m687_gCOBs <- list()
+yr2010_2022_m678_gCOBs <- list()
+
+
+# I don't know why this doesn't work....but using lapply() below does work.
+result_list_yr2010_2022_m678 <- map(yr2010_2022_m687_species_list, ~fish_calculate_gCOB(data = yr2010_2022_m678_clean_bio_data,
+                                                                                        output_name = "yr2010_2022_m678_gCOBs",
+                                                                                        taxonomic_column = "new_TAXON",
+                                                                                        common_name_column = "new_TAXON",
+                                                                                        species_name = .))
+
+
+
+# use this code...
+yr2010_2022_m687_gCOBs <- lapply(yr2010_2022_m687_species_list, function(species_name) {
+  fish_calculate_gCOB(data = yr2010_2022_m678_clean_bio_data,
+                      output_name = "yr2010_2022_m687_gCOBs",
+                      taxonomic_column = "new_TAXON",
+                      common_name_column = "new_TAXON",
+                      species_name = species_name)
+})
+
+
 ```
 
 
-## Pulling results of calculated gCOBs for individual species from species_gCOBs list
+## Pulling results of calculated gCOBs for individual species from species_gCOBs list - NEED TO UPDATE CODE TO PULL RESULTS FROM OTHER gCOBs LISTS OF RESULTS
 
 ```{r access gCOB values for individual species}
 
@@ -297,19 +356,23 @@ summary(long_model)
 
 
 # function to run linear models on gCOB latitude and longitude values over time to test for shifts
-test_gCOBs_over_time <- function(species_name)
+test_gCOBs_over_time <- function(species_name,
+                                 input_gCOBs,
+                                 output_df_name)
 {
   species <- tolower(species_name)
   
   # Find the index corresponding to the species name (case-insensitive)
-  index <- which(grepl(species, tolower(names(species_gCOBs))))
+  # index <- which(grepl(species, tolower(names(species_gCOBs))))
+    index <- which(grepl(species, tolower(names(input_gCOBs))))
   
   if (length(index) == 0) {
     # If no match is found, print an error message
-    print("Species not found in the species_gCOBs list.")
+    print("Species not found in the input_gCOBs list.")
   } else {
     # Access the result for the first matching species
-    species_result <- species_gCOBs[[index[1]]]
+    # species_result <- species_gCOBs[[index[1]]]
+    species_result <- input_gCOBs[[index[1]]]
   }
   
   
@@ -385,13 +448,14 @@ test_gCOBs_over_time <- function(species_name)
   
   
   # Get the existing dataframe from the global environment
-  global_gCOB_trends <- get("gCOB_trends", envir = .GlobalEnv)  
+  # global_gCOB_trends <- get("gCOB_trends", envir = .GlobalEnv) 
+    global_gCOB_trends <- get(output_df_name, envir = .GlobalEnv) 
   
   # Assign the cg dataframe with gCOB values the name of the fish species and add to the global_gCOB_trends dataframe
   global_gCOB_trends <- rbind(global_gCOB_trends, internal_gCOB_trends)
   
   # Assign the modified dataframe back to the global environment
-  assign("gCOB_trends", global_gCOB_trends, envir = .GlobalEnv)
+  assign(output_df_name, global_gCOB_trends, envir = .GlobalEnv)
   
   return(internal_gCOB_trends)
   
@@ -422,7 +486,67 @@ gCOB_trends <- data.frame(species = NA,
 # Apply the test_gCOBs_over_time function to each unique species and combine results into a dataframe
 individual_trends_results <- map(species_list, ~ test_gCOBs_over_time(species_name = .))
 
+# write_csv(gCOB_trends, file = "output/all_species_gCOB_data_v1.csv")
+
+
+
+# post2010_gCOB_trends <- data.frame(species = NA,
+#                           latitude_year_coef = NA,
+#                           latitude_year_SE = NA,
+#                           latitude_pvalue = NA,
+#                           latitude_rsquared = NA,
+#                           latitude_rsquared_adj = NA,
+#                           longitude_year_coef = NA,
+#                           longitude_year_SE = NA,
+#                           longitude_pvalue = NA,
+#                           longitude_rsquared = NA,
+#                           longitude_rsquared_adj = NA)
+
+
+post2010_individual_trends_results <- map(post2010_species_list, ~ test_gCOBs_over_time(species_name = .))
+
+
+# write_csv(gCOB_trends, file = "output/post2010_gCOB_data_v1.csv")
+
 ```
+
+
+```{r apply gCOB trends function to yr2010_2022_m678_gCOBs}
+
+# initiate empty data frame to store data in
+yr2010_2022_m678_gCOBs_trends <- data.frame(species = NA,
+                                            latitude_year_coef = NA,
+                                            latitude_year_SE = NA,
+                                            latitude_pvalue = NA,
+                                            latitude_rsquared = NA,
+                                            latitude_rsquared_adj = NA,
+                                            longitude_year_coef = NA,
+                                            longitude_year_SE = NA,
+                                            longitude_pvalue = NA,
+                                            longitude_rsquared = NA,
+                                            longitude_rsquared_adj = NA)
+
+yr2010_2022_m678_species_list <- yr2010_2022_m687_species_list
+
+# apply function
+yr2010_2022_m678_gCOBs_trends_results <- map(yr2010_2022_m678_species_list, ~ test_gCOBs_over_time(species_name = .,
+                                                                                                   input_gCOBs = yr2010_2022_m687_gCOBs,
+                                                                                                   output_df_name = "yr2010_2022_m678_gCOBs_trends"))
+
+yr2010_2022_m678_gCOBs_trends_results <- lapply(yr2010_2022_m678_species_list, function(species_name) {
+  test_gCOBs_over_time(species_name = species_name,
+                       input_gCOBs = yr2010_2022_m687_gCOBs,
+                       output_df_name = "yr2010_2022_m678_gCOBs_trends")
+})
+
+
+# export results as csv file
+write_csv(yr2010_2022_m678_gCOBs_trends, file = "output/yr2010_2022_m678_gCOBs_trends.csv")
+
+```
+
+
+
 
 
 ## NEXT - Summarize results from all the linear models...
@@ -483,6 +607,9 @@ significant_pvalues <- climate_gCOB_trends_slim %>%
   )
             
 significant_pvalues
+
+# write_csv(significant_pvalues, file = "output/gCOB_trends_v1.csv")
+write_csv(significant_pvalues, file = "output/post2010_gCOB_trends_v1.csv")
 
 
 

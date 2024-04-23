@@ -309,17 +309,63 @@ length(which(is.na(bio_data$HAULVALUE) == TRUE))   # 221,882   # 222,994 on Apri
 ```{r export clean bio_data}
 
 write_csv(bio_data, file = "data/clean_data/bio_data.csv")
+write_csv(bio_data_clean, file = "data/clean_data/bio_data.csv")
 
+
+```
+
+
+# Examine data in subsets
+
+## Exclude 1982 - low trawl station coverage of western GoM
+## Exclude 2020 - low trawl station coverage in general and no sampling in summer (June/July)
+## Exclude 2023 - not all data appears to be entered yet - mostly only from Florida so far
+- exclude 1982, 2020, 2023
+
+## There is trawl data from a variety of different months each year - June & July are consistently represented, though, along with October and November.
+- analyze only the data from 'summer' trawls (June & July) initially.
+- where fish species are caught could differ during the course of year (seasonal ontogeny)
+
+## Eastern side of Gulf of Mexico was not represented in trawl data until mid-2000s
+- analyze western and eastern sides of GoM separately
+
+
+```{r refine clean bio_data}
+
+
+years_to_include <- c(2010:2022)
+months_to_include <- c(6,7,8)
+
+post2010_clean_bio_data
+
+yr2010_2022_m678_clean_bio_data <- bio_data %>% 
+  filter(YR %in% years_to_include) %>% 
+  mutate(MONTH = month(dmy(MO_DAY_YR))) %>% 
+  filter(MONTH %in% months_to_include)
+
+# view(post2010_clean_bio_data)
+
+```
+
+
+
+```{r}
+
+# write_csv(post2010_clean_bio_data, file = "data/clean_data/post2010_bio_data.csv")
+write_csv(yr2010_2022_m678_clean_bio_data, file = "data/clean_data/yr2010_2022_m678_bio_data.csv")
 
 ```
 
 
 
 
+```{r year 2022 data}
 
+yr2022_data <- bio_data %>% 
+  filter(YR == "2022") %>% 
+  mutate(MONTH = month(dmy(MO_DAY_YR)))
 
-
-
+```
 
 
 

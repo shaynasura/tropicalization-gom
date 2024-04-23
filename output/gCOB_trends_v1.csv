@@ -1,0 +1,6 @@
+climate_zone,n,num_sig_pvalues_lat,num_sig_pvalues_long,num_sig_lat_shift_north,num_sig_lat_shift_south,num_sig_long_shift_west,num_sig_long_shift_east
+deep-water,64,13,16,0,13,14,2
+subtropical,331,111,159,2,109,32,127
+temperate,9,3,5,0,3,1,4
+tropical,166,56,68,3,53,14,54
+NA,5,0,1,0,0,0,1

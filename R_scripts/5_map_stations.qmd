@@ -135,25 +135,79 @@ base_map <- ggplot(data = world_base_map,
 
 ### Revise these maps and use the STAREC.csv raw data instead of the biological data to prevent duplication of station data points - because, currently, I am plotting the station data for each trawl multiple times (i.e., for each species caught in that trawl).
 
+
+```{r}
+
+# data_to_use_here_3 <- bio_data_clean
+# data_to_use_here_3 <- post2010_clean_bio_data
+data_to_use_here_3 <- yr2010_2022_m678_clean_bio_data
+
+
+station_data <- data_to_use_here_3 %>% 
+  group_by(STATIONID) %>% 
+  summarize(CRUISEID = unique(CRUISEID),
+            VESSEL = unique(VESSEL),
+            CRUISE_NO = unique(CRUISE_NO),
+            P_STA_NO = unique(P_STA_NO),
+            YR = unique(YR),
+            DEPTH_SSTA = unique(DEPTH_SSTA),
+            MO_DAY_YR = unique(MO_DAY_YR),
+            DECSLAT = unique(DECSLAT),
+            DECSLON = unique(DECSLON),
+            DECELAT = unique(DECELAT),
+            DECELON = unique(DECELON),
+            TEMP_SSURF = unique(TEMP_SSURF),
+            TEMP_BOT = unique(TEMP_BOT),
+            TEMP_SAIR = unique(TEMP_SAIR))
+
+```
+
+## how many trawls were done each year?
+
+```{r}
+
+stations_num_yr <- station_data %>% 
+  group_by(YR) %>% 
+  summarize(num_trawls = n(),
+            dates = paste(unique(month(dmy(MO_DAY_YR))), sep = ";", collapse = "; "))
+
+stations_num_yr
+# write_csv(stations_num_yr, file = "output/stations_num_yr_v1.csv")
+# write_csv(stations_num_yr, file = "output/stations_num_yr_v2.csv")
+write_csv(stations_num_yr, file = "output/stations_num_yr_yr2010_2022_m678.csv")
+
+## June and July (6 & 7) are consistent sampling months across all years, except 2020 and 2023
+## October and November (10 & 11) are consistent sampling months across all years, except 1982 and 2023
+
+### But about when surrounding months show up for trawls? e.g., May or August? Are those still part of summer sampling?
+### What about when December shows up for trawls? Is that part of fall sampling?
+
+
+```
+
+
+
 ```{r}
 
 station_maps <- base_map +
-  geom_point(data = bio_data_clean,
+  geom_point(data = station_data,
              na.rm = FALSE,
              aes(x = DECSLON,
                  y = DECSLAT,
                  group = NA,
                  fill = YR),
-             size = 1.5,
+             size = 0.6,
              shape = 21,
-             color = "black",
-             stroke = 0.1) +
-    scale_fill_gradient(low = "darkgray",
-                       high = "beige",
-                       limits = c(),
-                       # breaks = c(),
-                       # labels = c(),
-                       name = "Year") +
+             color = "darkorange4",
+             fill = "orange",
+             stroke = 0.05) +    # width of border line
+  # scale_fill_viridis_d(name = "Year") +
+    # scale_fill_gradient(low = "darkgray",
+    #                    high = "springgreen",
+    #                    limits = c(),
+    #                    # breaks = c(),
+    #                    # labels = c(),
+    #                    name = "Year") +
   theme(text = element_text(family = "Times",
                             size = 14),
         plot.title = element_text(face = "bold"),
@@ -164,10 +218,14 @@ station_maps <- base_map +
                                     face = "bold",
                                     hjust = 0.5),
         legend.text = element_text(size = 10)) +
+  labs(title = "2010 - 2022 June, July, & August Data") +
   facet_wrap(~YR)
 
 
 station_maps
+# ggsave("plots/stations_maps_v1.pdf", plot = station_maps, width = 9, height = 6.5)
+# ggsave("plots/stations_maps_v2_2010_2022_summer.pdf", plot = station_maps, width = 9, height = 6.5)
+ggsave("plots/station_maps_v3_yr2010_2022_m678.pdf", plot = station_maps, width = 9, height = 8.5)
 
 
 ```

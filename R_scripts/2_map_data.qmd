@@ -456,6 +456,24 @@ anim_save("plots/red_grouper_map1.gif")
 
 ```
 
+```{r testing with subsetted datasets}
+
+lionfish_function_animation_2010_2022_summer <- fish_species_animation(
+  data = yr2010_2022_m678_clean_bio_data,
+  taxonomic_column = "new_TAXON",
+  common_name_column = "new_TAXON",
+  species_name = "PTEROIS VOLITANS"
+)
+
+
+# animation_PTEROIS
+
+lionfish_function_animation_2010_2022_summer
+
+```
+
+
+
 
 ### Examining the fish species that Will Heyman suggested.
 

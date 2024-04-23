@@ -43,19 +43,61 @@ bio_data_clean <- read_csv(file = "data/clean_data/bio_data.csv")
 
 
 ## Misspelled entries in the TAXONOMIC column - should eventually be fixed with the CIU_BIOCODES and new_TAXON columns from 1_organize_data script...still have one misspelling version of Aluterus heudelotii that is not linked to an UPDATED_TAXON name change in the recent biocodes file (BIOCODES01182023.csv)
- - ALUTERUS HEUDELOTTI, 	ALUTERUS HEUDELOTII
+ - ALUTERUS HEUDELOTTI -> ALUTERUS HEUDELOTII
 
 
 
 
 ## Species Names in SEAMAP Trawl Data that do NOT align with FishBase Spellings:
-
 - APOGON ALUTUS -> ASTRAPOGON ALUTUS
-- ARIOSOMA BELEARICUM
+- ALUTERUS HEUDELOTTII -> ALUTERUS HEUDELOTII
+- ANCYLOPSETTA OMMATA -> ANCYLOPSETTA QUADROCELLATA
+- ELACATINU HORSTI -> ELACATINUS HORSTI
+- EUCINOSTOMUS PSEUDOGULA -> EUCINOSTOMUS JONESII
+- SCORPAENA TRIDECIMSPINOSA -> SCORPAENODES TREDECIMSPINOSUS
+- SPARISOMA ATROMARIUM -> SPARISOM ATOMARIUM
+- TETRAPTURUS PFLEUGERI -> Tetrapturus pfluegeri | TETRAPTURUS PFLUEGERI
+- UROPHYCIS EARLLI -> UROPHYCIS EARLLII
+- UROPHYCIS N SP CF EARLLII -> UROPHYCIS EARLLII
+
+
+## Fixed with updated biocodes csv from mid-April 2024 ((BIOCODES01182023.csv))
+- ARIOSOMA BELEARICUM -> ARIOSOMA BALEARICUM
 - BENTHODESMUS ATLANTICUS - no longer accepted, is now Benthodesmus simonyi
 - BROTULA BARBATUM -> Brotula barbata
-- CAELORINCHUS CARIBBAEUS -> Coelorinchus caribbaeus (and associated congeners)
+- CAELORINCHUS CARIBBAEUS -> Coelorinchus caribbaeus (and associated congeners)  
 - CENTROPRISTIS PHILADELPHICUS -> Centropristis philadelphica
+
+
+```{r updates to fish species taxonomic names}
+
+## run this code to update some misspellings of fish species taxonomic names I've encountered
+
+clean_data_to_update <- bio_data_clean
+
+
+clean_data_to_update <- yr2010_2022_m678_clean_bio_data # FILL IN HERE
+  
+clean_data_to_update <- clean_data_to_update %>% 
+  mutate(new_TAXON = case_when((new_TAXON == "APOGON ALUTUS") ~ "ASTRAPOGON ALUTUS", .default = new_TAXON),
+         new_TAXON = case_when((new_TAXON == "ALUTERUS HEUDELOTTII") ~ "ALUTERUS HEUDELOTII", .default = new_TAXON),
+         new_TAXON = case_when((new_TAXON == "ANCYLOPSETTA OMMATA") ~ "ANCYLOPSETTA QUADROCELLATA", .default = new_TAXON),
+         new_TAXON = case_when((new_TAXON == "ELACATINU HORSTI") ~ "ELACATINUS HORSTI", .default = new_TAXON),
+         new_TAXON = case_when((new_TAXON == "EUCINOSTOMUS PSEUDOGULA") ~ "EUCINOSTOMUS JONESII", .default = new_TAXON),
+         new_TAXON = case_when((new_TAXON == "SCORPAENA TRIDECIMSPINOSA") ~ "SCORPAENODES TREDECIMSPINOSUS", .default = new_TAXON),
+         new_TAXON = case_when((new_TAXON == "SPARISOMA ATROMARIUM") ~ "SPARISOMA ATOMARIUM", .default = new_TAXON),
+         new_TAXON = case_when((new_TAXON == "SPARISOM ATOMARIUM") ~ "SPARISOMA ATOMARIUM", .default = new_TAXON),
+         new_TAXON = case_when((new_TAXON == "TETRAPTURUS PFLEUGERI") ~ "TETRAPTURUS PFLUEGERI", .default = new_TAXON),
+         new_TAXON = case_when((new_TAXON == "UROPHYCIS EARLLI") ~ "UROPHYCIS EARLLII", .default = new_TAXON),
+         new_TAXON = case_when((new_TAXON == "UROPHYCIS N SP CF EARLLII") ~ "UROPHYCIS EARLLII", .default = new_TAXON)
+  )
+
+
+bio_data_clean <- clean_data_to_update
+yr2010_2022_m678_clean_bio_data <- clean_data_to_update
+
+```
+
 
 
 
@@ -81,11 +123,37 @@ species_df <- bio_data_clean %>%
   arrange(new_TAXON)
 
 
-dim(species_df)  ## returns 850 unique taxonomic names
+dim(species_df)  ## returns 843 unique taxonomic names after name adjustments above
 
 
 species_list <- species_df$new_TAXON  # converts to vector format so can be used in apply / mapping below to use function on all the species names in this vector
 length(species_list)
+
+
+
+# ## species list for 2010 - 2022 data only
+# post2010_species_df <- post2010_clean_bio_data %>% 
+#   select(new_TAXON, RANK) %>% 
+#   filter(RANK == "SPECIES") %>% 
+#   distinct(new_TAXON, .keep_all = TRUE) %>% 
+#   arrange(new_TAXON)
+# 
+# dim(post2010_species_df)  ## returns 514 unique taxonomic names
+# 
+# post2010_species_list <- post2010_species_df$new_TAXON  # converts to vector format so can be used in apply / mapping below to use function on all the species names in this vector
+# length(post2010_species_list)
+
+
+## species list for 2010 - 2022 summer months (6,7,8) data only
+yr2010_2022_m687_species_df <- yr2010_2022_m678_clean_bio_data %>% 
+  select(new_TAXON, RANK) %>% 
+  filter(RANK == "SPECIES") %>% 
+  distinct(new_TAXON, .keep_all = TRUE) %>% 
+  arrange(new_TAXON)
+
+dim(yr2010_2022_m687_species_df) # 513 unique taxonomic names
+yr2010_2022_m687_species_list <- yr2010_2022_m687_species_df$new_TAXON
+length(yr2010_2022_m687_species_list) # 513 unique taxonomic names
 
 
 
@@ -224,49 +292,7 @@ for (species in species_list) {
 # view(species_climate_df)
 
 # Create csv file with species climate information
-write_csv(species_climate_df, file = "data/clean_data/species_climate_data.csv")
-
-
-# ## MAY NOT NEED TO DO THIS PART - THE ISSUE WAS WITH A SPECIES NAME THAT HAD A SLASH (/) IN IT 
-# 
-# # separate species_list into smaller lists to loop through so FishBase and for loop don't time out every time...
-# species_list_1_100 <- species_list[1:100]
-# species_list_101_200 <- species_list[101:200]
-# species_list_201_300 <- species_list[201:300]
-# species_list_301_400 <- species_list[301:400]
-# species_list_401_500 <- species_list[401:500]
-# species_list_501_600 <- species_list[501:600]
-# species_list_601_700 <- species_list[601:700]
-# species_list_701_800 <- species_list[701:800]
-# species_list_801_847 <- species_list[801:847]
-# 
-# species_chunks <- list(
-#   species_list_1_100 <- species_list[1:100],
-#   species_list_101_200 <- species_list[101:200],
-#   species_list_201_300 <- species_list[201:300],
-#   species_list_301_400 <- species_list[301:400],
-#   species_list_401_500 <- species_list[401:500],
-#   species_list_501_600 <- species_list[501:600],
-#   species_list_601_700 <- species_list[601:700],
-#   species_list_701_800 <- species_list[701:800],
-#   species_list_801_847 <- species_list[801:847]
-# )
-# 
-# 
-# # Initialize an empty data frame to store results
-# species_climate_df_test <- data.frame(species_name = character(), climate_zone = character(), stringsAsFactors = FALSE)
-# 
-# for(chunk in species_chunks){
-#   species_small <- chunk
-#   for (species in species_small) {
-#     # Get the climate zone for the species
-#     climate_zone <- get_climate_zone(species)
-#     
-#     # Append the species name and climate zone to the data frame
-#     species_climate_df_test <- rbind(species_climate_df_test, data.frame(species_name = species, climate_zone = climate_zone))
-#   }
-# }
-
+write_csv(species_climate_df, file = "output/species_climate_data.csv")
 
 
 
