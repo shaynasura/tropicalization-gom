@@ -145,15 +145,15 @@ length(species_list)
 
 
 ## species list for 2010 - 2022 summer months (6,7,8) data only
-yr2010_2022_m687_species_df <- yr2010_2022_m678_clean_bio_data %>% 
+yr2010_2022_m678_species_df <- yr2010_2022_m678_bio_data_clean %>% 
   select(new_TAXON, RANK) %>% 
   filter(RANK == "SPECIES") %>% 
   distinct(new_TAXON, .keep_all = TRUE) %>% 
   arrange(new_TAXON)
 
-dim(yr2010_2022_m687_species_df) # 513 unique taxonomic names
-yr2010_2022_m687_species_list <- yr2010_2022_m687_species_df$new_TAXON
-length(yr2010_2022_m687_species_list) # 513 unique taxonomic names
+dim(yr2010_2022_m678_species_df) # 513 unique taxonomic names
+yr2010_2022_m678_species_list <- yr2010_2022_m678_species_df$new_TAXON
+length(yr2010_2022_m678_species_list) # 513 unique taxonomic names
 
 
 
@@ -211,7 +211,7 @@ length(yr2010_2022_m687_species_list) # 513 unique taxonomic names
 
 # FishBase Function - scrape information from FishBase to determine the climate zone information for each fish species.
 
-## side note - the rfishbase package looks helpful for extracting most information from FishBase. Unfortunately, the information I need to extract is not found in a table, so this package doesn't work for me.
+## side note - the 'rfishbase' package looks helpful for extracting most information from FishBase. Unfortunately, the information I need to extract is not found in a table, so this package doesn't work for me.
 
 
 ```{r web scraping FishBase for fish species distribution information}
