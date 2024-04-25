@@ -1,0 +1,435 @@
+---
+title: "7_allGoM_fall"
+author: "Shayna A. Sura"
+format: html
+---
+
+# Tropicalization of Gulf of Mexico Fish Communities
+## Analysis of SEAMAP Trawl Data
+### Data Subset: all of GoM stations for fall trawls (October, November, December)
+
+
+## Quarto
+
+Quarto enables you to weave together content and executable code into a finished document. To learn more about Quarto see <https://quarto.org>.
+
+
+When you click the **Render** button a document will be generated that includes both content and the output of embedded code. You can embed code like this:
+
+```{r load packages}
+#| echo: false
+#| message: false
+#| warning: false
+
+library(tidyverse) # includes and loads the packages listed below
+# library(readr)
+# library(tidyr)
+# library(dplyr)
+# library(ggplot2)
+# library(lubridate)
+
+library(stringr)  # for manipulating text strings
+
+library(here) # helps with paths for files
+library(arsenal)
+
+library(purrr)
+
+library(broom) # for creating tibbles of model output information
+
+# libraries for spatial data & animating it...
+library(maps)
+library(ggmap)
+library(gganimate)
+library(gifski) # for gif output
+library(av) # for video output
+library(png)
+library(tools)
+
+# library(scales)
+# library(ggbeeswarm)
+
+```
+
+
+
+
+
+```{r source custom functions to simplify conducting these analyses}
+#| echo: false
+
+# getwd()
+
+source("R_scripts/functions/fish_calculate_gCOB.R")
+source("R_scripts/functions/test_gCOBs_over_time.R")
+source("R_scripts/functions/combine_and_modify_models.R")
+source("R_scripts/functions/filter_gCOB_dataframes.R")
+
+```
+
+
+
+
+```{r load data from csv file and filter for desired years and months}
+#| echo: false
+#| message: false
+
+# import csv of clean bio data
+bio_data_clean <- read_csv(file = "data/clean_data/bio_data_clean.csv")
+
+# import csv with cimate zone information for each fish species as web scraped from FishBase
+species_climate_df <- read_csv(file = "output/species_climate_data.csv")
+
+
+# subset the data for the target years and months
+years_to_include <- c(2010:2022)
+months_to_include <- c(10,11,12)
+
+
+bio_data_clean_yr2010_2022_m101112 <- bio_data_clean %>% 
+  filter(YR %in% years_to_include) %>% 
+  mutate(MONTH = month(dmy(MO_DAY_YR))) %>% 
+  filter(MONTH %in% months_to_include)
+
+
+# export data subset to csv file
+write_csv(bio_data_clean_yr2010_2022_m101112, file = "data/clean_data/bio_data_clean_yr2010_2022_m101112.csv")
+
+```
+
+
+
+
+
+
+```{r obtain GoM map}
+#| echo: false
+#| message: false
+
+
+gulf_of_mexico_info <- map_data("usa", region = ".")
+world_base_map <- map_data("world", region = ".")
+usa_state_borders <- map_data("state", region = ".")
+
+base_map <- ggplot(data = world_base_map,
+                   mapping = aes (x = long, y = lat, group = group)) +
+  geom_polygon(color = "black",
+               fill = "white") +
+  geom_polygon(data = usa_state_borders,
+               color = "black",
+               fill = "white") + 
+  coord_quickmap(xlim = c(-97.7, -79.9),
+                 ylim = c(24, 31)) +
+  theme(panel.background = element_rect(fill = c("#CFEFFF")),
+        panel.border = element_rect(fill = NA,
+                                    color = "black")
+        ) +
+  labs(x = "Longitude",
+       y = "Latitude")
+
+```
+
+
+
+## Number of trawl stations sampled each year
+
+```{r}
+#| echo: false
+
+
+data_to_use_here_3 <- bio_data_clean_yr2010_2022_m101112
+
+
+station_data <- data_to_use_here_3 %>% 
+  group_by(STATIONID) %>% 
+  summarize(CRUISEID = unique(CRUISEID),
+            VESSEL = unique(VESSEL),
+            CRUISE_NO = unique(CRUISE_NO),
+            P_STA_NO = unique(P_STA_NO),
+            YR = unique(YR),
+            DEPTH_SSTA = unique(DEPTH_SSTA),
+            MO_DAY_YR = unique(MO_DAY_YR),
+            DECSLAT = unique(DECSLAT),
+            DECSLON = unique(DECSLON),
+            DECELAT = unique(DECELAT),
+            DECELON = unique(DECELON),
+            TEMP_SSURF = unique(TEMP_SSURF),
+            TEMP_BOT = unique(TEMP_BOT),
+            TEMP_SAIR = unique(TEMP_SAIR))
+
+
+stations_num_yr <- station_data %>% 
+  group_by(YR) %>% 
+  summarize(num_trawls = n(),
+            dates = paste(unique(month(dmy(MO_DAY_YR))), sep = ";", collapse = "; "))
+
+stations_num_yr
+
+write_csv(stations_num_yr, file = "output/stations_num_yr_yr2010_2022_m101112.csv")
+
+```
+
+
+## Map of trawl stations
+
+```{r}
+#| echo: false
+
+
+station_maps <- base_map +
+  geom_point(data = station_data,
+             na.rm = FALSE,
+             aes(x = DECSLON,
+                 y = DECSLAT,
+                 group = NA,
+                 fill = YR),
+             size = 0.6,
+             shape = 21,
+             color = "darkorange4",
+             fill = "orange",
+             stroke = 0.05) +    # width of border line
+  # scale_fill_viridis_d(name = "Year") +
+    # scale_fill_gradient(low = "darkgray",
+    #                    high = "springgreen",
+    #                    limits = c(),
+    #                    # breaks = c(),
+    #                    # labels = c(),
+    #                    name = "Year") +
+  theme(text = element_text(family = "Times",
+                            size = 14),
+        plot.title = element_text(face = "bold"),
+        axis.title = element_text(size = 12,
+                                  face = "bold"),
+        axis.text = element_text(size = 10),
+        legend.title = element_text(size = 12,
+                                    face = "bold",
+                                    hjust = 0.5),
+        legend.text = element_text(size = 10)) +
+  labs(title = "2010 - 2022 October, November, December Data") +
+  facet_wrap(~YR)
+
+
+station_maps
+
+ggsave("plots/station_maps_yr2010_2022_m101112.pdf", plot = station_maps, width = 9, height = 8.5)
+
+
+```
+
+
+
+
+```{r get list of fish species taxonomic names}
+
+## species list for 2010 - 2022 fall months (10,11,12) data only
+species_df_yr2010_2022_m101112 <- bio_data_clean_yr2010_2022_m101112 %>% 
+  select(new_TAXON, RANK) %>% 
+  filter(RANK == "SPECIES") %>% 
+  distinct(new_TAXON, .keep_all = TRUE) %>% 
+  arrange(new_TAXON)
+
+
+# dim(species_df_yr2010_2022_m101112) # 500 unique taxonomic names
+species_vec_yr2010_2022_m101112 <- species_df_yr2010_2022_m101112$new_TAXON
+num_species <- length(species_vec_yr2010_2022_m101112) # 500 unique taxonomic names
+
+
+```
+
+There are `r num_species` fish species that were caught in trawls in this subset of data.
+
+
+
+```{r gCOB analyses}
+#| echo: false
+
+# Step 1 - use fish_calculate_gCOB function
+# Applying the gCOB calculate function to each unique species for the dataset only containing 2010 - 2022 data
+# create an empty list to store cg dataframe
+gCOBs_yr2010_2022_m101112 <- list()
+
+# Apply the fish_calculate_gCOB function to each unique species and combine results into a list
+result_list_yr2010_2022_m101112 <- map(species_vec_yr2010_2022_m101112, ~fish_calculate_gCOB(data = bio_data_clean_yr2010_2022_m101112,
+                                                                                             output_name = "gCOBs_yr2010_2022_m101112",
+                                                                                             taxonomic_column = "new_TAXON",
+                                                                                             common_name_column = "new_TAXON",
+                                                                                             species_name = .))
+
+
+
+# Step 2 - filter to only include fish species with 5+ gCOB observations
+# Filter the list of data frames
+gCOBs_yr2010_2022_m101112 <- filter_gCOB_dataframes(gCOBs_yr2010_2022_m101112, min_years = 5)
+
+# get updated list of fish species names
+species_vec_yr2010_2022_m101112 <- gsub("_gCOB", "", names(gCOBs_yr2010_2022_m101112))
+
+
+
+# Step 3 - use test_gCOBs_over_time function
+# initiate empty data frame to store data in
+gCOB_trends_yr2010_2022_m101112 <- data.frame(species = NA,
+                                              latitude_year_coef = NA,
+                                              latitude_year_SE = NA,
+                                              latitude_pvalue = NA,
+                                              latitude_rsquared = NA,
+                                              latitude_rsquared_adj = NA,
+                                              longitude_year_coef = NA,
+                                              longitude_year_SE = NA,
+                                              longitude_pvalue = NA,
+                                              longitude_rsquared = NA,
+                                              longitude_rsquared_adj = NA)
+
+# initiate empty lists to store latitude and longitude model outputs
+lat_models_yr2010_2022_m101112 <- list()
+long_models_yr2010_2022_m101112 <- list()
+
+# apply function
+trends_results_yr2010_2022_m101112 <- map(species_vec_yr2010_2022_m101112,
+                                       ~ test_gCOBs_over_time(species_name = .,
+                                                              input_gCOBs = gCOBs_yr2010_2022_m101112,
+                                                              output_df_name = "gCOB_trends_yr2010_2022_m101112",
+                                                              latitude_models_output_name = "lat_models_yr2010_2022_m101112",
+                                                              longitude_models_output_name = "long_models_yr2010_2022_m101112"))
+
+# remove row of NAs at beginning of dataframe
+gCOB_trends_yr2010_2022_m101112 <- gCOB_trends_yr2010_2022_m101112 %>% 
+  slice(-1)
+
+
+# export results as csv file
+write_csv(gCOB_trends_yr2010_2022_m101112, file = "output/gCOB_trends_results_raw_yr2010_2022_m101112.csv")
+
+
+```
+
+
+```{r summarizing trends in gCOBs - pvalue summary}
+#| echo: false
+
+# Version 1 - summarizing based on p-values
+# specify the gCOB trends dataframe to use here
+gCOB_trends_data <- gCOB_trends_yr2010_2022_m101112 
+
+# join climate zone information to gCOB_trends
+climate_gCOB_trends <- gCOB_trends_data %>%
+  rename(species_name = species) %>%
+  left_join(species_climate_df, join_by(species_name)) %>% 
+  rename(species = species_name)
+
+
+# summarize the number of fish species that show significant shifts in latitude or longitude based on significant p-values
+significant_pvalues <- climate_gCOB_trends %>% 
+  group_by(climate_zone) %>% 
+  summarize(n = n(),
+            num_sig_pvalues_lat = length(which(latitude_pvalue < 0.05)),
+            num_sig_pvalues_long = length(which(longitude_pvalue < 0.05)),
+            num_sig_lat_shift_north = length(which(latitude_pvalue < 0.05 & latitude_year_coef > 0)),
+            num_sig_lat_shift_south = length(which(latitude_pvalue < 0.05 & latitude_year_coef < 0)),
+            num_sig_long_shift_west = length(which(longitude_pvalue < 0.05 & longitude_year_coef < 0)),
+            num_sig_long_shift_east = length(which(longitude_pvalue < 0.05 & longitude_year_coef > 0))
+  )
+         
+# significant_pvalues
+
+# export to csv file
+write_csv(significant_pvalues, file = "output/gCOB_trends_pvalue_summary_yr2010_2022_m101112.csv")
+
+
+```
+
+
+
+```{r summarizing trends in gCOBs - 95CI summary}
+#| echo: false
+
+# Step 1 - use combine_and_modify_models function to get single dataframe of model results from lists of model output
+# latitudinal models
+lat_models_df_yr2010_2022_m101112 <- combine_and_modify_models(model_list = lat_models_yr2010_2022_m101112,
+                                                                     output_name = "lat_models_df_yr2010_2022_m101112",
+                                                                     pattern = "latitude")
+# longitudinal models
+long_models_df_yr2010_2022_m101112 <- combine_and_modify_models(model_list = long_models_yr2010_2022_m101112,
+                                                                     output_name = "long_models_df_yr2010_2022_m101112",
+                                                                     pattern = "longitude")
+
+
+# Step 2 - summarize trends based on 95CIs not overlapping with zero
+
+# summarize the number of fish species that show significant shifts in latitude or longitude based on 95CIs that do not overlap with zero
+## latitude models
+significant_95CIs_lat <- lat_models_df_yr2010_2022_m101112 %>% 
+  filter(term != "(Intercept)") %>%
+  mutate(signif_95CI = ifelse(conf.low < 0 & conf.high > 0, "not significant", "significant")) %>% 
+  mutate(signif_pvalue = ifelse(p.value < 0.05, "significant", "not significant")) %>% 
+  group_by(climate_zone) %>% 
+  summarize(n = n(),
+            num_sig_95CIs_lat = sum(signif_95CI == "significant"),
+            num_sig_pvalues_lat = sum(signif_pvalue == "significant"),
+            num_sig_95CIs_lat_shift_north = sum(signif_95CI == "significant" & estimate > 0),
+            num_sig_95CIs_lat_shift_south = sum(signif_95CI == "significant" & estimate < 0),
+            north_shift_species = paste(species[signif_95CI == "significant" & estimate > 0], collapse = ", "),
+            south_shift_species = paste(species[signif_95CI == "significant" & estimate < 0], collapse = ", ")
+  )
+
+
+## longitude models
+significant_95CIs_long <- long_models_df_yr2010_2022_m101112 %>% 
+  filter(term != "(Intercept)") %>%
+  mutate(signif_95CI = ifelse(conf.low < 0 & conf.high > 0, "not significant", "significant")) %>% 
+  mutate(signif_pvalue = ifelse(p.value < 0.05, "significant", "not significant")) %>% 
+  group_by(climate_zone) %>% 
+  summarize(n = n(),
+            num_sig_95CIs_long = sum(signif_95CI == "significant"),
+            num_sig_pvalues_long = sum(signif_pvalue == "significant"),
+            num_sig_95CIs_long_shift_west = sum(signif_95CI == "significant" & estimate < 0),
+            num_sig_95CIs_long_shift_east = sum(signif_95CI == "significant" & estimate > 0),
+            west_shift_species = paste(species[signif_95CI == "significant" & estimate < 0], collapse = ", "),
+            east_shift_species = paste(species[signif_95CI == "significant" & estimate > 0], collapse = ", ")
+  )
+
+
+## combine output from latitude and longitude summary dataframes
+all_significant_95CIs <- significant_95CIs_lat %>% 
+  left_join(significant_95CIs_long, join_by(climate_zone))
+
+
+## export to csv file
+write_csv(all_significant_95CIs, "output/gCOB_significant_trends_yr2010_2022_m101112.csv")
+
+table_1 <- knitr::kable(all_significant_95CIs)
+
+```
+
+
+Table XX. The number of fish species that have significantly shifted latitudinally or longitudinally based upon their gCOBs.
+`r table_1`
+
+
+
+Figure 2.
+
+
+
+Figure 3.
+
+
+
+Figure 4.
+
+
+
+Figure 5.
+
+
+
+
+
+You can add options to executable code like this 
+
+```{r}
+#| echo: false
+2 * 2
+```
+
+The `echo: false` option disables the printing of code (only output is displayed).
