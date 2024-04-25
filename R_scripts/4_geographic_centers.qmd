@@ -309,7 +309,7 @@ species_names <- names(species_gCOBs)
 
 
 
-
+## testing linear trends models for gCOB for lionfish
 
 ```{r test for linear trends of gCOB for lionfish}
 
@@ -346,6 +346,8 @@ summary(long_model)
 ```
 
 
+
+## Function to run linear models of gCOBs for latitude and longitude over time
 
 ```{r function run linear models in gCOB latitude and longitudes over time}
 
@@ -469,11 +471,9 @@ test_gCOBs_over_time <- function(species_name,
   assign(longitude_models_output_name, global_species_longitude_models, envir = .GlobalEnv)
   
   
-  
   return(internal_gCOB_trends)
   
 }
-
 
 ```
 
