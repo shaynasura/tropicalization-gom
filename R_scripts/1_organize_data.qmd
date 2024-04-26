@@ -27,6 +27,8 @@ library(arsenal)
 
 ```
 
+
+
 ### function to load multiple .csv files at once
 
 ```{r function to load csv files}
@@ -306,13 +308,78 @@ length(which(is.na(bio_data$HAULVALUE) == TRUE))   # 221,882   # 222,994 on Apri
 
 
 
-```{r export clean bio_data}
+```{r export bio_data}
 
-write_csv(bio_data, file = "data/clean_data/bio_data.csv")
-write_csv(bio_data_clean, file = "data/clean_data/bio_data.csv")
-
+write_csv(bio_data, file = "data/bio_data_not_clean.csv")
 
 ```
+
+
+
+# CLEAN the data based on my observations of fish species names misspellings or taxonomic names that haven't been updated to correspond with FishBase yet
+
+## Misspelled entries in the TAXONOMIC column - should eventually be fixed with the CIU_BIOCODES and new_TAXON columns from 1_organize_data script...still have one misspelling version of Aluterus heudelotii that is not linked to an UPDATED_TAXON name change in the recent biocodes file (BIOCODES01182023.csv)
+ - ALUTERUS HEUDELOTTI -> ALUTERUS HEUDELOTII
+
+
+## Species Names in SEAMAP Trawl Data that do NOT align with FishBase Spellings:
+- APOGON ALUTUS -> ASTRAPOGON ALUTUS
+- ALUTERUS HEUDELOTTII -> ALUTERUS HEUDELOTII
+- ANCYLOPSETTA OMMATA -> ANCYLOPSETTA QUADROCELLATA
+- ELACATINU HORSTI -> ELACATINUS HORSTI
+- EUCINOSTOMUS PSEUDOGULA -> EUCINOSTOMUS JONESII
+- SCORPAENA TRIDECIMSPINOSA -> SCORPAENODES TREDECIMSPINOSUS
+- SPARISOMA ATROMARIUM -> SPARISOM ATOMARIUM
+- TETRAPTURUS PFLEUGERI -> TETRAPTURUS PFLUEGERI
+- UROPHYCIS EARLLI -> UROPHYCIS EARLLII
+- UROPHYCIS N SP CF EARLLII -> UROPHYCIS EARLLII
+
+
+## Fixed with updated biocodes csv from mid-April 2024 ((BIOCODES01182023.csv))
+- ARIOSOMA BELEARICUM -> ARIOSOMA BALEARICUM
+- BENTHODESMUS ATLANTICUS - no longer accepted, is now Benthodesmus simonyi
+- BROTULA BARBATUM -> Brotula barbata
+- CAELORINCHUS CARIBBAEUS -> Coelorinchus caribbaeus (and associated congeners)  
+- CENTROPRISTIS PHILADELPHICUS -> Centropristis philadelphica
+
+
+```{r updates to fish species taxonomic names}
+
+## run this code to update some misspellings of fish species taxonomic names I've encountered
+
+clean_data_to_update <- bio_data
+
+
+clean_data_to_update <- clean_data_to_update %>% 
+  mutate(new_TAXON = case_when((new_TAXON == "APOGON ALUTUS") ~ "ASTRAPOGON ALUTUS", .default = new_TAXON),
+         new_TAXON = case_when((new_TAXON == "ALUTERUS HEUDELOTTII") ~ "ALUTERUS HEUDELOTII", .default = new_TAXON),
+         new_TAXON = case_when((new_TAXON == "ANCYLOPSETTA OMMATA") ~ "ANCYLOPSETTA QUADROCELLATA", .default = new_TAXON),
+         new_TAXON = case_when((new_TAXON == "ELACATINU HORSTI") ~ "ELACATINUS HORSTI", .default = new_TAXON),
+         new_TAXON = case_when((new_TAXON == "EUCINOSTOMUS PSEUDOGULA") ~ "EUCINOSTOMUS JONESII", .default = new_TAXON),
+         new_TAXON = case_when((new_TAXON == "SCORPAENA TRIDECIMSPINOSA") ~ "SCORPAENODES TREDECIMSPINOSUS", .default = new_TAXON),
+         new_TAXON = case_when((new_TAXON == "SPARISOMA ATROMARIUM") ~ "SPARISOMA ATOMARIUM", .default = new_TAXON),
+         new_TAXON = case_when((new_TAXON == "SPARISOM ATOMARIUM") ~ "SPARISOMA ATOMARIUM", .default = new_TAXON),
+         new_TAXON = case_when((new_TAXON == "TETRAPTURUS PFLEUGERI") ~ "TETRAPTURUS PFLUEGERI", .default = new_TAXON),
+         new_TAXON = case_when((new_TAXON == "UROPHYCIS EARLLI") ~ "UROPHYCIS EARLLII", .default = new_TAXON),
+         new_TAXON = case_when((new_TAXON == "UROPHYCIS N SP CF EARLLII") ~ "UROPHYCIS EARLLII", .default = new_TAXON)
+  )
+
+
+bio_data_clean <- clean_data_to_update
+
+# export clean bio data to csv file
+write_csv(bio_data_clean, file = "data/clean_data/bio_data_clean.csv")
+
+
+## shouldn't need to clean subsets of data because the entire bio_data should be clean now
+# clean_data_to_update <- bio_data_yr2010_2022_m678 # FILL IN HERE
+# yr2010_2022_m678_clean_bio_data <- clean_data_to_update
+
+```
+
+
+
+
 
 
 # Examine data in subsets
@@ -336,9 +403,9 @@ write_csv(bio_data_clean, file = "data/clean_data/bio_data.csv")
 years_to_include <- c(2010:2022)
 months_to_include <- c(6,7,8)
 
-post2010_clean_bio_data
+bio_data_post2010
 
-yr2010_2022_m678_clean_bio_data <- bio_data %>% 
+bio_data_clean_yr2010_2022_m678 <- bio_data_clean %>% 
   filter(YR %in% years_to_include) %>% 
   mutate(MONTH = month(dmy(MO_DAY_YR))) %>% 
   filter(MONTH %in% months_to_include)
@@ -351,8 +418,8 @@ yr2010_2022_m678_clean_bio_data <- bio_data %>%
 
 ```{r}
 
-# write_csv(post2010_clean_bio_data, file = "data/clean_data/post2010_bio_data.csv")
-write_csv(yr2010_2022_m678_clean_bio_data, file = "data/clean_data/yr2010_2022_m678_bio_data.csv")
+# write_csv(bio_data_post2010, file = "data/bio_data_post2010.csv")
+write_csv(bio_data_clean_yr2010_2022_m678, file = "data/clean_data/bio_data_clean_yr2010_2022_m678.csv")
 
 ```
 
@@ -366,6 +433,31 @@ yr2022_data <- bio_data %>%
   mutate(MONTH = month(dmy(MO_DAY_YR)))
 
 ```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

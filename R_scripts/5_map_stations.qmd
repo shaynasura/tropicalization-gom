@@ -51,7 +51,7 @@ library(tools)
 #| echo: false
 #| message: false
 
-bio_data_clean <- read_csv(file = "data/clean_data/bio_data.csv")
+bio_data_clean <- read_csv(file = "data/clean_data/bio_data_clean.csv")
 
 # head(bio_data_clean)
 
@@ -140,7 +140,7 @@ base_map <- ggplot(data = world_base_map,
 
 # data_to_use_here_3 <- bio_data_clean
 # data_to_use_here_3 <- post2010_clean_bio_data
-data_to_use_here_3 <- yr2010_2022_m678_clean_bio_data
+data_to_use_here_3 <- bio_data_clean_yr2010_2022_m678
 
 
 station_data <- data_to_use_here_3 %>% 

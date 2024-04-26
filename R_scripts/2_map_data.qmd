@@ -40,7 +40,7 @@ library(tools)
 
 ## Accessing objects from other Quarto documents in this R Project???
 
-### Not sure this is possoible to do. Might be better to export the clean data files from my other quarto document and then reload / import them into this quarto document...
+### Not sure this is possible to do. Might be better to export the clean data files from my other quarto document and then reload / import them into this quarto document...
 ```
 
 
@@ -63,7 +63,7 @@ library(tools)
 #| echo: false
 #| message: false
 
-bio_data_clean <- read_csv(file = "data/clean_data/bio_data.csv")
+bio_data_clean <- read_csv(file = "data/clean_data/bio_data_clean.csv")
 
 # head(bio_data_clean)
 

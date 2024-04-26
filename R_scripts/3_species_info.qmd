@@ -25,8 +25,11 @@ library(rvest) #for web scraping
 library(xml2)
 library(stringr)
 
+# library(devtools) # for loading all functions from functions folder
+
 
 ```
+
 
 
 
@@ -34,70 +37,11 @@ library(stringr)
 #| echo: false
 #| message: false
 
-bio_data_clean <- read_csv(file = "data/clean_data/bio_data.csv")
+bio_data_clean <- read_csv(file = "data/clean_data/bio_data_clean.csv")
 
 # head(bio_data_clean)
 
 ```
-
-
-
-## Misspelled entries in the TAXONOMIC column - should eventually be fixed with the CIU_BIOCODES and new_TAXON columns from 1_organize_data script...still have one misspelling version of Aluterus heudelotii that is not linked to an UPDATED_TAXON name change in the recent biocodes file (BIOCODES01182023.csv)
- - ALUTERUS HEUDELOTTI -> ALUTERUS HEUDELOTII
-
-
-
-
-## Species Names in SEAMAP Trawl Data that do NOT align with FishBase Spellings:
-- APOGON ALUTUS -> ASTRAPOGON ALUTUS
-- ALUTERUS HEUDELOTTII -> ALUTERUS HEUDELOTII
-- ANCYLOPSETTA OMMATA -> ANCYLOPSETTA QUADROCELLATA
-- ELACATINU HORSTI -> ELACATINUS HORSTI
-- EUCINOSTOMUS PSEUDOGULA -> EUCINOSTOMUS JONESII
-- SCORPAENA TRIDECIMSPINOSA -> SCORPAENODES TREDECIMSPINOSUS
-- SPARISOMA ATROMARIUM -> SPARISOM ATOMARIUM
-- TETRAPTURUS PFLEUGERI -> Tetrapturus pfluegeri | TETRAPTURUS PFLUEGERI
-- UROPHYCIS EARLLI -> UROPHYCIS EARLLII
-- UROPHYCIS N SP CF EARLLII -> UROPHYCIS EARLLII
-
-
-## Fixed with updated biocodes csv from mid-April 2024 ((BIOCODES01182023.csv))
-- ARIOSOMA BELEARICUM -> ARIOSOMA BALEARICUM
-- BENTHODESMUS ATLANTICUS - no longer accepted, is now Benthodesmus simonyi
-- BROTULA BARBATUM -> Brotula barbata
-- CAELORINCHUS CARIBBAEUS -> Coelorinchus caribbaeus (and associated congeners)  
-- CENTROPRISTIS PHILADELPHICUS -> Centropristis philadelphica
-
-
-```{r updates to fish species taxonomic names}
-
-## run this code to update some misspellings of fish species taxonomic names I've encountered
-
-clean_data_to_update <- bio_data_clean
-
-
-clean_data_to_update <- yr2010_2022_m678_clean_bio_data # FILL IN HERE
-  
-clean_data_to_update <- clean_data_to_update %>% 
-  mutate(new_TAXON = case_when((new_TAXON == "APOGON ALUTUS") ~ "ASTRAPOGON ALUTUS", .default = new_TAXON),
-         new_TAXON = case_when((new_TAXON == "ALUTERUS HEUDELOTTII") ~ "ALUTERUS HEUDELOTII", .default = new_TAXON),
-         new_TAXON = case_when((new_TAXON == "ANCYLOPSETTA OMMATA") ~ "ANCYLOPSETTA QUADROCELLATA", .default = new_TAXON),
-         new_TAXON = case_when((new_TAXON == "ELACATINU HORSTI") ~ "ELACATINUS HORSTI", .default = new_TAXON),
-         new_TAXON = case_when((new_TAXON == "EUCINOSTOMUS PSEUDOGULA") ~ "EUCINOSTOMUS JONESII", .default = new_TAXON),
-         new_TAXON = case_when((new_TAXON == "SCORPAENA TRIDECIMSPINOSA") ~ "SCORPAENODES TREDECIMSPINOSUS", .default = new_TAXON),
-         new_TAXON = case_when((new_TAXON == "SPARISOMA ATROMARIUM") ~ "SPARISOMA ATOMARIUM", .default = new_TAXON),
-         new_TAXON = case_when((new_TAXON == "SPARISOM ATOMARIUM") ~ "SPARISOMA ATOMARIUM", .default = new_TAXON),
-         new_TAXON = case_when((new_TAXON == "TETRAPTURUS PFLEUGERI") ~ "TETRAPTURUS PFLUEGERI", .default = new_TAXON),
-         new_TAXON = case_when((new_TAXON == "UROPHYCIS EARLLI") ~ "UROPHYCIS EARLLII", .default = new_TAXON),
-         new_TAXON = case_when((new_TAXON == "UROPHYCIS N SP CF EARLLII") ~ "UROPHYCIS EARLLII", .default = new_TAXON)
-  )
-
-
-bio_data_clean <- clean_data_to_update
-yr2010_2022_m678_clean_bio_data <- clean_data_to_update
-
-```
-
 
 
 
@@ -115,46 +59,32 @@ yr2010_2022_m678_clean_bio_data <- clean_data_to_update
 ```{r extract unique fish species names}
 
 # Extract unique fish species taxonomic names - ONLY fishes identified to species level - returns a dataframe
-
 species_df <- bio_data_clean %>% 
   select(new_TAXON, RANK) %>% 
   filter(RANK == "SPECIES") %>% 
   distinct(new_TAXON, .keep_all = TRUE) %>% 
   arrange(new_TAXON)
 
-
+# check dimensions
 dim(species_df)  ## returns 843 unique taxonomic names after name adjustments above
-
-
-species_list <- species_df$new_TAXON  # converts to vector format so can be used in apply / mapping below to use function on all the species names in this vector
+# convert to vector format so can be used in apply / mapping below to use function on all the species names in this vector
+species_list <- species_df$new_TAXON
+# check length
 length(species_list)
 
 
-
-# ## species list for 2010 - 2022 data only
-# post2010_species_df <- post2010_clean_bio_data %>% 
+# 
+# ## species list for 2010 - 2022 summer months (6,7,8) data only
+# yr2010_2022_m678_species_df <- yr2010_2022_m678_bio_data_clean %>% 
 #   select(new_TAXON, RANK) %>% 
 #   filter(RANK == "SPECIES") %>% 
 #   distinct(new_TAXON, .keep_all = TRUE) %>% 
 #   arrange(new_TAXON)
 # 
-# dim(post2010_species_df)  ## returns 514 unique taxonomic names
+# dim(yr2010_2022_m678_species_df) # 513 unique taxonomic names
+# yr2010_2022_m678_species_list <- yr2010_2022_m678_species_df$new_TAXON    # converts to vector format so can be used in apply / mapping below to use function on all the species names in this vector
+# length(yr2010_2022_m678_species_list) # 513 unique taxonomic names
 # 
-# post2010_species_list <- post2010_species_df$new_TAXON  # converts to vector format so can be used in apply / mapping below to use function on all the species names in this vector
-# length(post2010_species_list)
-
-
-## species list for 2010 - 2022 summer months (6,7,8) data only
-yr2010_2022_m678_species_df <- yr2010_2022_m678_bio_data_clean %>% 
-  select(new_TAXON, RANK) %>% 
-  filter(RANK == "SPECIES") %>% 
-  distinct(new_TAXON, .keep_all = TRUE) %>% 
-  arrange(new_TAXON)
-
-dim(yr2010_2022_m678_species_df) # 513 unique taxonomic names
-yr2010_2022_m678_species_list <- yr2010_2022_m678_species_df$new_TAXON
-length(yr2010_2022_m678_species_list) # 513 unique taxonomic names
-
 
 
 
@@ -184,23 +114,12 @@ length(yr2010_2022_m678_species_list) # 513 unique taxonomic names
 ### in the R script "1_organize_data.qmd", we check the UPDATED_TAXON column for an updated scientific name for fish species
 #### SEAMAP organizers have updated the information for Centropristis philadelphicus, but not for all species I've identified above yet.
 
-```{r manually updated fish scientific names}
+```{r check for updated fish scientific names from FishBase}
 
-# 
-# ## the taxonomic name for the Rock Sea Bass in the SEAMAP trawl data is currently "CENTROPRISTIS PHILADELPHICUS", but on FishBase, the scientific name given is "Centropristis philadelphica"
-# 
-# bio_data_clean <- bio_data_clean %>% 
-#   mutate(TAXONOMIC = case_when((TAXONOMIC == "CENTROPRISTIS PHILADELPHICUS") ~ "Centropristis philadelphica", .default = TAXONOMIC))
-# 
-# 
-# ## the taxonomic name for the Bandtooth conger in the SEAMAP trawl data is currently "ARIOSOMA BELEARICUM", but on FishBase, the scientific name given is "Ariosoma balearicum"
-# 
-# 
-# ## the taxonomic name for the bearded brotula in the SEAMAP trawl data is currently "BROTULA BARBATUM", but on FishBase, the scientific name given is "Brotula barbata"
-# 
+## TO DO IN FUTURE ##
+# write code to automatically check fish species names against currently accepted names in FishBase #
 
 ```
-
 
 
 
