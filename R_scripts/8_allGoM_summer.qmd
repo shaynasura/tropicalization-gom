@@ -1,0 +1,280 @@
+---
+title: "Analysis of SEAMAP data for the entire GoM for years 2010 - 2022 and summer sampling months of June, July, and August"
+author: "Shayna A. Sura"
+format: html
+---
+
+
+# Tropicalization of Gulf of Mexico Fish Communities
+
+## Analysis of SEAMAP Trawl Data
+
+### Data Subset: all GoM stations for summer trawls (June, July, August) in years 2010 - 2022
+
+```{r code to render to pdf format}
+#| echo: false
+#| eval: false
+
+quarto::quarto_render(input = "R_scripts/8_allGoM_summer.qmd", output_format = "pdf")
+
+```
+
+
+
+```{r load packages}
+#| echo: false
+#| message: false
+#| warning: false
+
+library(tidyverse) # includes and loads the packages listed below
+# library(readr)
+# library(tidyr)
+# library(dplyr)
+# library(ggplot2)
+# library(lubridate)
+
+library(stringr)  # for manipulating text strings
+
+library(here) # helps with paths for files
+library(arsenal)
+
+library(purrr)
+
+library(broom) # for creating tibbles of model output information
+
+library(knitr) # for formatting tables
+library(kableExtra) # for formatting tables
+
+# libraries for spatial data & animating it...
+library(maps)
+library(ggmap)
+library(gganimate)
+library(gifski) # for gif output
+library(av) # for video output
+library(png)
+library(tools)
+
+# library(scales)
+# library(ggbeeswarm)
+
+```
+
+
+
+```{r source custom functions to simplify conducting these analyses}
+#| echo: false
+
+# getwd()
+
+source("R_scripts/functions/fish_calculate_gCOB.R")
+source("R_scripts/functions/test_gCOBs_over_time.R")
+source("R_scripts/functions/combine_and_modify_models.R")
+source("R_scripts/functions/filter_gCOB_dataframes.R")
+source("R_scripts/functions/plot_lat_long_gCOB_data.R")
+
+```
+
+
+
+```{r load in subsetted clean data and species_climate_zone data}
+#| echo: false
+#| message: false
+
+
+# import csv with bio_data_clean already subsetted for this desired analysis
+bio_data_clean_yr2010_2022_m678 <- read_csv(file = "data/clean_data/bio_data_clean_yr2010_2022_m678.csv")
+
+
+# import csv with climate zone information for each fish species as web scraped from FishBase
+species_climate_df <- read_csv(file = "output/species_climate_data.csv")
+
+```
+
+
+
+```{r load data from csv file and filter for desired years and months}
+#| echo: false
+#| message: false
+#| eval: false
+
+# import csv of clean bio data
+bio_data_clean <- read_csv(file = "data/clean_data/bio_data_clean.csv")
+
+# import csv with cimate zone information for each fish species as web scraped from FishBase
+species_climate_df <- read_csv(file = "output/species_climate_data.csv")
+
+
+# subset the data for the target years and months
+years_to_include <- c(2010:2022)
+months_to_include <- c(6,7,8)
+
+
+bio_data_clean_yr2010_2022_m678 <- bio_data_clean %>% 
+  filter(YR %in% years_to_include) %>% 
+  mutate(MONTH = month(dmy(MO_DAY_YR))) %>% 
+  filter(MONTH %in% months_to_include)
+
+
+
+# export data subset to csv file
+write_csv(bio_data_clean_yr2010_2022_m678, file = "data/clean_data/bio_data_clean_yr2010_2022_m678.csv")
+
+
+```
+
+
+
+
+```{r obtain GoM map}
+#| echo: false
+#| message: false
+
+
+gulf_of_mexico_info <- map_data("usa", region = ".")
+world_base_map <- map_data("world", region = ".")
+usa_state_borders <- map_data("state", region = ".")
+
+base_map <- ggplot(data = world_base_map,
+                   mapping = aes (x = long, y = lat, group = group)) +
+  geom_polygon(color = "black",
+               fill = "white") +
+  geom_polygon(data = usa_state_borders,
+               color = "black",
+               fill = "white") + 
+  coord_quickmap(xlim = c(-97.7, -79.9),
+                 ylim = c(24, 31)) +
+  theme(panel.background = element_rect(fill = c("#CFEFFF")),
+        panel.border = element_rect(fill = NA,
+                                    color = "black")
+        ) +
+  labs(x = "Longitude",
+       y = "Latitude")
+
+```
+
+
+
+
+```{r get number of trawl stations sampled each year}
+#| echo: false
+
+data_to_use_here_3 <- bio_data_clean_yr2010_2022_m678
+
+
+station_data <- data_to_use_here_3 %>% 
+  group_by(STATIONID) %>% 
+  summarize(CRUISEID = unique(CRUISEID),
+            VESSEL = unique(VESSEL),
+            CRUISE_NO = unique(CRUISE_NO),
+            P_STA_NO = unique(P_STA_NO),
+            YR = unique(YR),
+            DEPTH_SSTA = unique(DEPTH_SSTA),
+            MO_DAY_YR = unique(MO_DAY_YR),
+            DECSLAT = unique(DECSLAT),
+            DECSLON = unique(DECSLON),
+            DECELAT = unique(DECELAT),
+            DECELON = unique(DECELON),
+            TEMP_SSURF = unique(TEMP_SSURF),
+            TEMP_BOT = unique(TEMP_BOT),
+            TEMP_SAIR = unique(TEMP_SAIR))
+
+
+stations_num_yr <- station_data %>% 
+  group_by(YR) %>% 
+  summarize('# of trawls' = n(),
+            months = paste(unique(month(dmy(MO_DAY_YR))), sep = ";", collapse = "; ")) %>% 
+  rename(year = YR)
+
+stations_num_yr_formatted <- knitr::kable(stations_num_yr) %>% 
+  kableExtra::kable_styling(font_size = 10)
+
+write_csv(stations_num_yr, file = "output/stations_num_yr_yr2010_2022_m678.csv")
+
+```
+
+\newpage
+
+**Table 1.** Number of trawl stations for each year of data and the fall months during which sampling took place (6 = June, 7 = July, 8 = August).
+`r stations_num_yr_formatted`
+
+
+\newpage
+
+#### Map of trawl stations
+
+```{r map the trawl station locations, fig.width=6.5, fig.height=7.8}
+#| echo: false
+
+
+station_maps <- base_map +
+  geom_point(data = station_data,
+             na.rm = FALSE,
+             aes(x = DECSLON,
+                 y = DECSLAT,
+                 group = NA,
+                 fill = YR),
+             size = 0.6,
+             shape = 21,
+             color = "darkorange4",
+             fill = "orange",
+             stroke = 0.05) +    # width of border line
+  # scale_fill_viridis_d(name = "Year") +
+    # scale_fill_gradient(low = "darkgray",
+    #                    high = "springgreen",
+    #                    limits = c(),
+    #                    # breaks = c(),
+    #                    # labels = c(),
+    #                    name = "Year") +
+  theme(text = element_text(family = "Times",
+                            size = 12),
+        plot.title = element_text(face = "bold",
+                                  hjust = 0.5),
+        axis.title = element_text(size = 12,
+                                  face = "bold"),
+        axis.text = element_text(size = 10),
+        legend.title = element_text(size = 12,
+                                    face = "bold",
+                                    hjust = 0.5),
+        legend.text = element_text(size = 10),
+        legend.position = "none") +
+  labs(title = "Trawl Stations: 2010 - 2022\nJune, July, August for entire GoM") +
+  facet_wrap(~YR, ncol = 5)
+
+
+station_maps
+
+ggsave("plots/station_maps_yr2010_2022_m678.pdf", plot = station_maps, width = 9, height = 8.5)
+
+
+```
+
+**Figure 1.** Trawl sampling locations for the entire GoM for each year of data collection for this subset of data (2010-2022 summer sampling in months of June, July, and August).
+
+
+
+
+```{r get list of fish species taxonomic names}
+#| echo: false
+
+## species list for 2010 - 2022 summer months (6,7,8) data only
+species_df_yr2010_2022_m678 <- bio_data_clean_yr2010_2022_m678 %>% 
+  select(new_TAXON, RANK) %>% 
+  filter(RANK == "SPECIES") %>% 
+  distinct(new_TAXON, .keep_all = TRUE) %>% 
+  arrange(new_TAXON)
+
+
+# dim(species_df_yr2010_2022_m678) # 500 unique taxonomic names
+species_vec_yr2010_2022_m678 <- species_df_yr2010_2022_m678$new_TAXON
+num_species <- length(species_vec_yr2010_2022_m678) # 500 unique taxonomic names
+
+
+```
+
+There are `r num_species` fish species that were caught in trawls in this subset of data.
+
+
+
+
+
+

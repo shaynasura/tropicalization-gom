@@ -1,0 +1,1213 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.3.353">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="author" content="Shayna A. Sura">
+
+<title>Analysis of SEAMAP data for the western GoM for all years (1983 - 2022) and summer sampling months of June, July, and August</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+</style>
+
+
+<script src="9_westernGoM_summer_files/libs/clipboard/clipboard.min.js"></script>
+<script src="9_westernGoM_summer_files/libs/quarto-html/quarto.js"></script>
+<script src="9_westernGoM_summer_files/libs/quarto-html/popper.min.js"></script>
+<script src="9_westernGoM_summer_files/libs/quarto-html/tippy.umd.min.js"></script>
+<script src="9_westernGoM_summer_files/libs/quarto-html/anchor.min.js"></script>
+<link href="9_westernGoM_summer_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="9_westernGoM_summer_files/libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="9_westernGoM_summer_files/libs/bootstrap/bootstrap.min.js"></script>
+<link href="9_westernGoM_summer_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="9_westernGoM_summer_files/libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+
+<script src="9_westernGoM_summer_files/libs/kePrint-0.0.1/kePrint.js"></script>
+<link href="9_westernGoM_summer_files/libs/lightable-0.0.1/lightable.css" rel="stylesheet">
+
+
+</head>
+
+<body class="fullcontent">
+
+<div id="quarto-content" class="page-columns page-rows-contents page-layout-article">
+
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Analysis of SEAMAP data for the western GoM for all years (1983 - 2022) and summer sampling months of June, July, and August</h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    <div>
+    <div class="quarto-title-meta-heading">Author</div>
+    <div class="quarto-title-meta-contents">
+             <p>Shayna A. Sura </p>
+          </div>
+  </div>
+    
+  
+    
+  </div>
+  
+
+</header>
+
+<section id="tropicalization-of-gulf-of-mexico-fish-communities" class="level1">
+<h1>Tropicalization of Gulf of Mexico Fish Communities</h1>
+<section id="analysis-of-seamap-trawl-data" class="level2">
+<h2 class="anchored" data-anchor-id="analysis-of-seamap-trawl-data">Analysis of SEAMAP Trawl Data</h2>
+<section id="data-subset-western-gom-stations-for-summer-trawls-june-july-august-in-years-1983---2022" class="level3">
+<h3 class="anchored" data-anchor-id="data-subset-western-gom-stations-for-summer-trawls-june-july-august-in-years-1983---2022">Data Subset: western GoM stations for summer trawls (June, July, August) in years 1983 - 2022</h3>
+<section id="number-of-trawl-stations-sampled-each-year" class="level5">
+<h5 class="anchored" data-anchor-id="number-of-trawl-stations-sampled-each-year">Number of trawl stations sampled each year</h5>
+<p><strong>Table 1.</strong> Number of trawl stations for each year of data and the fall months during which sampling took place.</p>
+<table class="table">
+<thead>
+<tr class="header">
+<th style="text-align: right;">year</th>
+<th style="text-align: right;"># of trawls</th>
+<th style="text-align: left;">months</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: right;">1983</td>
+<td style="text-align: right;">381</td>
+<td style="text-align: left;">8; 6; 7</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">1984</td>
+<td style="text-align: right;">291</td>
+<td style="text-align: left;">6; 7; 8</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">1985</td>
+<td style="text-align: right;">404</td>
+<td style="text-align: left;">6; 7; 8</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">1986</td>
+<td style="text-align: right;">270</td>
+<td style="text-align: left;">6; 7</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">1987</td>
+<td style="text-align: right;">652</td>
+<td style="text-align: left;">6; 7</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">1988</td>
+<td style="text-align: right;">542</td>
+<td style="text-align: left;">6; 7</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">1989</td>
+<td style="text-align: right;">389</td>
+<td style="text-align: left;">6; 7</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">1990</td>
+<td style="text-align: right;">435</td>
+<td style="text-align: left;">6; 7; 8</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">1991</td>
+<td style="text-align: right;">418</td>
+<td style="text-align: left;">6; 7</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">1992</td>
+<td style="text-align: right;">407</td>
+<td style="text-align: left;">7; 6</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">1993</td>
+<td style="text-align: right;">444</td>
+<td style="text-align: left;">8; 6; 7</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">1994</td>
+<td style="text-align: right;">394</td>
+<td style="text-align: left;">6; 7; 8</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">1995</td>
+<td style="text-align: right;">370</td>
+<td style="text-align: left;">6; 8; 7</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">1996</td>
+<td style="text-align: right;">374</td>
+<td style="text-align: left;">7; 6; 8</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">1997</td>
+<td style="text-align: right;">371</td>
+<td style="text-align: left;">6; 7; 8</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">1998</td>
+<td style="text-align: right;">335</td>
+<td style="text-align: left;">6; 7</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">1999</td>
+<td style="text-align: right;">377</td>
+<td style="text-align: left;">6; 7; 8</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">2000</td>
+<td style="text-align: right;">377</td>
+<td style="text-align: left;">6; 7</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">2001</td>
+<td style="text-align: right;">269</td>
+<td style="text-align: left;">7; 6</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">2002</td>
+<td style="text-align: right;">372</td>
+<td style="text-align: left;">6; 7</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">2003</td>
+<td style="text-align: right;">303</td>
+<td style="text-align: left;">6; 7</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">2004</td>
+<td style="text-align: right;">363</td>
+<td style="text-align: left;">6; 7</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">2005</td>
+<td style="text-align: right;">300</td>
+<td style="text-align: left;">6; 7; 8</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">2006</td>
+<td style="text-align: right;">375</td>
+<td style="text-align: left;">6; 7; 8</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">2007</td>
+<td style="text-align: right;">353</td>
+<td style="text-align: left;">6; 7; 8</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">2008</td>
+<td style="text-align: right;">377</td>
+<td style="text-align: left;">6; 8; 7</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">2009</td>
+<td style="text-align: right;">476</td>
+<td style="text-align: left;">6; 8; 7</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">2010</td>
+<td style="text-align: right;">319</td>
+<td style="text-align: left;">6; 8; 7</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">2011</td>
+<td style="text-align: right;">265</td>
+<td style="text-align: left;">6; 7</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">2012</td>
+<td style="text-align: right;">293</td>
+<td style="text-align: left;">6; 7</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">2013</td>
+<td style="text-align: right;">250</td>
+<td style="text-align: left;">7; 6</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">2014</td>
+<td style="text-align: right;">259</td>
+<td style="text-align: left;">6; 7</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">2015</td>
+<td style="text-align: right;">188</td>
+<td style="text-align: left;">6; 7</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">2016</td>
+<td style="text-align: right;">179</td>
+<td style="text-align: left;">6; 7</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">2017</td>
+<td style="text-align: right;">178</td>
+<td style="text-align: left;">6; 7</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">2018</td>
+<td style="text-align: right;">149</td>
+<td style="text-align: left;">6; 7</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">2019</td>
+<td style="text-align: right;">166</td>
+<td style="text-align: left;">6; 7</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">2021</td>
+<td style="text-align: right;">127</td>
+<td style="text-align: left;">6; 7</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">2022</td>
+<td style="text-align: right;">133</td>
+<td style="text-align: left;">6; 8</td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="map-of-trawl-stations" class="level4">
+<h4 class="anchored" data-anchor-id="map-of-trawl-stations">Map of trawl stations</h4>
+<div class="cell">
+<div class="cell-output-display">
+<p><img src="9_westernGoM_summer_files/figure-html/map%20the%20trawl%20station%20locations-1.png" class="img-fluid" width="912"></p>
+</div>
+</div>
+<p><strong>Figure 1.</strong> Trawl sampling locations for the western GoM for each year of data collection for this subset of data (1983-2022 summer sampling in months of June, July, and August).</p>
+<p>There are 513 fish species that were caught in trawls in this subset of data.</p>
+<p>Of those 513 fish species, only 294 of them had gCOB values for at least 5 years. For these fish species, linear models were constructed to test if their latitude and longitude gCOBs had shifted over time.</p>
+<div style="page-break-after: always;"></div>
+<p><strong>Table 2.</strong> The number of fish species that have significantly shifted latitudinally or longitudinally based upon their gCOBs.</p>
+<table class="table">
+<colgroup>
+<col style="width: 10%">
+<col style="width: 3%">
+<col style="width: 20%">
+<col style="width: 11%">
+<col style="width: 11%">
+<col style="width: 21%">
+<col style="width: 10%">
+<col style="width: 10%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: center;">climate zone</th>
+<th style="text-align: center;">n</th>
+<th style="text-align: center;">significant latitude shift</th>
+<th style="text-align: center;">North shifted</th>
+<th style="text-align: center;">South shifted</th>
+<th style="text-align: center;">significant longitude shift</th>
+<th style="text-align: center;">West shifted</th>
+<th style="text-align: center;">East shifted</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: center;">deep-water</td>
+<td style="text-align: center;">12</td>
+<td style="text-align: center;">5</td>
+<td style="text-align: center;">1</td>
+<td style="text-align: center;">4</td>
+<td style="text-align: center;">3</td>
+<td style="text-align: center;">3</td>
+<td style="text-align: center;">0</td>
+</tr>
+<tr class="even">
+<td style="text-align: center;">subtropical</td>
+<td style="text-align: center;">203</td>
+<td style="text-align: center;">47</td>
+<td style="text-align: center;">10</td>
+<td style="text-align: center;">37</td>
+<td style="text-align: center;">53</td>
+<td style="text-align: center;">44</td>
+<td style="text-align: center;">9</td>
+</tr>
+<tr class="odd">
+<td style="text-align: center;">temperate</td>
+<td style="text-align: center;">5</td>
+<td style="text-align: center;">0</td>
+<td style="text-align: center;">0</td>
+<td style="text-align: center;">0</td>
+<td style="text-align: center;">1</td>
+<td style="text-align: center;">1</td>
+<td style="text-align: center;">0</td>
+</tr>
+<tr class="even">
+<td style="text-align: center;">tropical</td>
+<td style="text-align: center;">74</td>
+<td style="text-align: center;">24</td>
+<td style="text-align: center;">3</td>
+<td style="text-align: center;">21</td>
+<td style="text-align: center;">25</td>
+<td style="text-align: center;">22</td>
+<td style="text-align: center;">3</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Table 3.</strong> The tropical fish species that have significantly shifted their geographical center of biomass (gCOB) over time.</p>
+<div class="cell">
+<div class="cell-output-display">
+<table data-quarto-postprocess="true" class="table table-sm table-striped small">
+<thead>
+<tr class="header">
+<th style="text-align: center;" data-quarto-table-cell-role="th">index</th>
+<th style="text-align: center;" data-quarto-table-cell-role="th">north</th>
+<th style="text-align: center;" data-quarto-table-cell-role="th">south</th>
+<th style="text-align: center;" data-quarto-table-cell-role="th">west</th>
+<th style="text-align: center;" data-quarto-table-cell-role="th">east</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: center; font-style: italic;">1</td>
+<td style="text-align: center; font-style: italic;">Pareques acuminatus</td>
+<td style="text-align: center; font-style: italic;">Bellator brachychir</td>
+<td style="text-align: center; font-style: italic;">Bellator brachychir</td>
+<td style="text-align: center; font-style: italic;">Pareques acuminatus</td>
+</tr>
+<tr class="even">
+<td style="text-align: center; font-style: italic;">2</td>
+<td style="text-align: center; font-style: italic;">Prionotus roseus</td>
+<td style="text-align: center; font-style: italic;">Citharichthys spilopterus</td>
+<td style="text-align: center; font-style: italic;">Citharichthys spilopterus</td>
+<td style="text-align: center; font-style: italic;">Prionotus roseus</td>
+</tr>
+<tr class="odd">
+<td style="text-align: center; font-style: italic;">3</td>
+<td style="text-align: center; font-style: italic;">Rypticus saponaceus</td>
+<td style="text-align: center; font-style: italic;">Diplectrum bivittatum</td>
+<td style="text-align: center; font-style: italic;">Diplectrum bivittatum</td>
+<td style="text-align: center; font-style: italic;">Rypticus saponaceus</td>
+</tr>
+<tr class="even">
+<td style="text-align: center; font-style: italic;">4</td>
+<td style="text-align: center; font-style: italic;"></td>
+<td style="text-align: center; font-style: italic;">Engyophrys senta</td>
+<td style="text-align: center; font-style: italic;">Echiophis punctifer</td>
+<td style="text-align: center; font-style: italic;"></td>
+</tr>
+<tr class="odd">
+<td style="text-align: center; font-style: italic;">5</td>
+<td style="text-align: center; font-style: italic;"></td>
+<td style="text-align: center; font-style: italic;">Gobionellus hastatus</td>
+<td style="text-align: center; font-style: italic;">Engyophrys senta</td>
+<td style="text-align: center; font-style: italic;"></td>
+</tr>
+<tr class="even">
+<td style="text-align: center; font-style: italic;">6</td>
+<td style="text-align: center; font-style: italic;"></td>
+<td style="text-align: center; font-style: italic;">Gymnothorax kolpos</td>
+<td style="text-align: center; font-style: italic;">Gobioides broussonnetii</td>
+<td style="text-align: center; font-style: italic;"></td>
+</tr>
+<tr class="odd">
+<td style="text-align: center; font-style: italic;">7</td>
+<td style="text-align: center; font-style: italic;"></td>
+<td style="text-align: center; font-style: italic;">Lepophidium brevibarbe</td>
+<td style="text-align: center; font-style: italic;">Gymnothorax kolpos</td>
+<td style="text-align: center; font-style: italic;"></td>
+</tr>
+<tr class="even">
+<td style="text-align: center; font-style: italic;">8</td>
+<td style="text-align: center; font-style: italic;"></td>
+<td style="text-align: center; font-style: italic;">Lepophidium jeannae</td>
+<td style="text-align: center; font-style: italic;">Lepophidium brevibarbe</td>
+<td style="text-align: center; font-style: italic;"></td>
+</tr>
+<tr class="odd">
+<td style="text-align: center; font-style: italic;">9</td>
+<td style="text-align: center; font-style: italic;"></td>
+<td style="text-align: center; font-style: italic;">Neobythites gillii</td>
+<td style="text-align: center; font-style: italic;">Lepophidium jeannae</td>
+<td style="text-align: center; font-style: italic;"></td>
+</tr>
+<tr class="even">
+<td style="text-align: center; font-style: italic;">10</td>
+<td style="text-align: center; font-style: italic;"></td>
+<td style="text-align: center; font-style: italic;">Ogcocephalus declivirostris</td>
+<td style="text-align: center; font-style: italic;">Ogcocephalus declivirostris</td>
+<td style="text-align: center; font-style: italic;"></td>
+</tr>
+<tr class="odd">
+<td style="text-align: center; font-style: italic;">11</td>
+<td style="text-align: center; font-style: italic;"></td>
+<td style="text-align: center; font-style: italic;">Ogcocephalus nasutus</td>
+<td style="text-align: center; font-style: italic;">Ogcocephalus nasutus</td>
+<td style="text-align: center; font-style: italic;"></td>
+</tr>
+<tr class="even">
+<td style="text-align: center; font-style: italic;">12</td>
+<td style="text-align: center; font-style: italic;"></td>
+<td style="text-align: center; font-style: italic;">Ophidion holbrookii</td>
+<td style="text-align: center; font-style: italic;">Ophidion holbrookii</td>
+<td style="text-align: center; font-style: italic;"></td>
+</tr>
+<tr class="odd">
+<td style="text-align: center; font-style: italic;">13</td>
+<td style="text-align: center; font-style: italic;"></td>
+<td style="text-align: center; font-style: italic;">Ophidion welshi</td>
+<td style="text-align: center; font-style: italic;">Ophidion welshi</td>
+<td style="text-align: center; font-style: italic;"></td>
+</tr>
+<tr class="even">
+<td style="text-align: center; font-style: italic;">14</td>
+<td style="text-align: center; font-style: italic;"></td>
+<td style="text-align: center; font-style: italic;">Pontinus longispinis</td>
+<td style="text-align: center; font-style: italic;">Pontinus longispinis</td>
+<td style="text-align: center; font-style: italic;"></td>
+</tr>
+<tr class="odd">
+<td style="text-align: center; font-style: italic;">15</td>
+<td style="text-align: center; font-style: italic;"></td>
+<td style="text-align: center; font-style: italic;">Porichthys plectrodon</td>
+<td style="text-align: center; font-style: italic;">Prionotus longispinosus</td>
+<td style="text-align: center; font-style: italic;"></td>
+</tr>
+<tr class="even">
+<td style="text-align: center; font-style: italic;">16</td>
+<td style="text-align: center; font-style: italic;"></td>
+<td style="text-align: center; font-style: italic;">Prionotus longispinosus</td>
+<td style="text-align: center; font-style: italic;">Rhynchoconger flavus</td>
+<td style="text-align: center; font-style: italic;"></td>
+</tr>
+<tr class="odd">
+<td style="text-align: center; font-style: italic;">17</td>
+<td style="text-align: center; font-style: italic;"></td>
+<td style="text-align: center; font-style: italic;">Rhynchoconger flavus</td>
+<td style="text-align: center; font-style: italic;">Saurida normani</td>
+<td style="text-align: center; font-style: italic;"></td>
+</tr>
+<tr class="even">
+<td style="text-align: center; font-style: italic;">18</td>
+<td style="text-align: center; font-style: italic;"></td>
+<td style="text-align: center; font-style: italic;">Saurida normani</td>
+<td style="text-align: center; font-style: italic;">Scorpaena calcarata</td>
+<td style="text-align: center; font-style: italic;"></td>
+</tr>
+<tr class="odd">
+<td style="text-align: center; font-style: italic;">19</td>
+<td style="text-align: center; font-style: italic;"></td>
+<td style="text-align: center; font-style: italic;">Serranus atrobranchus</td>
+<td style="text-align: center; font-style: italic;">Serranus atrobranchus</td>
+<td style="text-align: center; font-style: italic;"></td>
+</tr>
+<tr class="even">
+<td style="text-align: center; font-style: italic;">20</td>
+<td style="text-align: center; font-style: italic;"></td>
+<td style="text-align: center; font-style: italic;">Syacium gunteri</td>
+<td style="text-align: center; font-style: italic;">Syacium gunteri</td>
+<td style="text-align: center; font-style: italic;"></td>
+</tr>
+<tr class="odd">
+<td style="text-align: center; font-style: italic;">21</td>
+<td style="text-align: center; font-style: italic;"></td>
+<td style="text-align: center; font-style: italic;">Trichopsetta ventralis</td>
+<td style="text-align: center; font-style: italic;">Synodus foetens</td>
+<td style="text-align: center; font-style: italic;"></td>
+</tr>
+<tr class="even">
+<td style="text-align: center; font-style: italic;">22</td>
+<td style="text-align: center; font-style: italic;"></td>
+<td style="text-align: center; font-style: italic;"></td>
+<td style="text-align: center; font-style: italic;">Trichopsetta ventralis</td>
+<td style="text-align: center; font-style: italic;"></td>
+</tr>
+</tbody>
+</table>
+
+
+</div>
+</div>
+<p><strong>Table 4.</strong> The subtropical fish species that have significantly shifted their geographical center of biomass (gCOB) over time.</p>
+<div class="cell">
+<div class="cell-output-display">
+<table data-quarto-postprocess="true" class="table table-sm table-striped small">
+<thead>
+<tr class="header">
+<th style="text-align: center;" data-quarto-table-cell-role="th">index</th>
+<th style="text-align: center;" data-quarto-table-cell-role="th">north</th>
+<th style="text-align: center;" data-quarto-table-cell-role="th">south</th>
+<th style="text-align: center;" data-quarto-table-cell-role="th">west</th>
+<th style="text-align: center;" data-quarto-table-cell-role="th">east</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: center; font-style: italic;">1</td>
+<td style="text-align: center; font-style: italic;">Bembrops gobioides</td>
+<td style="text-align: center; font-style: italic;">Ariopsis felis</td>
+<td style="text-align: center; font-style: italic;">Ancylopsetta quadrocellata</td>
+<td style="text-align: center; font-style: italic;">Centropristis ocyurus</td>
+</tr>
+<tr class="even">
+<td style="text-align: center; font-style: italic;">2</td>
+<td style="text-align: center; font-style: italic;">Centropristis ocyurus</td>
+<td style="text-align: center; font-style: italic;">Bagre marinus</td>
+<td style="text-align: center; font-style: italic;">Archosargus probatocephalus</td>
+<td style="text-align: center; font-style: italic;">Decapterus macarellus</td>
+</tr>
+<tr class="odd">
+<td style="text-align: center; font-style: italic;">3</td>
+<td style="text-align: center; font-style: italic;">Decapterus macarellus</td>
+<td style="text-align: center; font-style: italic;">Bathyanthias mexicana</td>
+<td style="text-align: center; font-style: italic;">Ariopsis felis</td>
+<td style="text-align: center; font-style: italic;">Halieutichthys aculeatus</td>
+</tr>
+<tr class="even">
+<td style="text-align: center; font-style: italic;">4</td>
+<td style="text-align: center; font-style: italic;">Diplectrum formosum</td>
+<td style="text-align: center; font-style: italic;">Bollmannia communis</td>
+<td style="text-align: center; font-style: italic;">Astroscopus y-graecum</td>
+<td style="text-align: center; font-style: italic;">Larimus fasciatus</td>
+</tr>
+<tr class="odd">
+<td style="text-align: center; font-style: italic;">5</td>
+<td style="text-align: center; font-style: italic;">Halieutichthys aculeatus</td>
+<td style="text-align: center; font-style: italic;">Bregmaceros atlanticus</td>
+<td style="text-align: center; font-style: italic;">Bagre marinus</td>
+<td style="text-align: center; font-style: italic;">Otophidium omostigma</td>
+</tr>
+<tr class="even">
+<td style="text-align: center; font-style: italic;">6</td>
+<td style="text-align: center; font-style: italic;">Hemicaranx amblyrhynchus</td>
+<td style="text-align: center; font-style: italic;">Brotula barbata</td>
+<td style="text-align: center; font-style: italic;">Bathyanthias mexicana</td>
+<td style="text-align: center; font-style: italic;">Paralichthys albigutta</td>
+</tr>
+<tr class="odd">
+<td style="text-align: center; font-style: italic;">7</td>
+<td style="text-align: center; font-style: italic;">Leiostomus xanthurus</td>
+<td style="text-align: center; font-style: italic;">Caulolatilus cyanops</td>
+<td style="text-align: center; font-style: italic;">Bollmannia communis</td>
+<td style="text-align: center; font-style: italic;">Rostroraja eglanteria</td>
+</tr>
+<tr class="even">
+<td style="text-align: center; font-style: italic;">8</td>
+<td style="text-align: center; font-style: italic;">Paralichthys albigutta</td>
+<td style="text-align: center; font-style: italic;">Caulolatilus intermedius</td>
+<td style="text-align: center; font-style: italic;">Bregmaceros atlanticus</td>
+<td style="text-align: center; font-style: italic;">Sphoeroides dorsalis</td>
+</tr>
+<tr class="odd">
+<td style="text-align: center; font-style: italic;">9</td>
+<td style="text-align: center; font-style: italic;">Selene setapinnis</td>
+<td style="text-align: center; font-style: italic;">Centropristis philadelphica</td>
+<td style="text-align: center; font-style: italic;">Brotula barbata</td>
+<td style="text-align: center; font-style: italic;">Xyrichtys novacula</td>
+</tr>
+<tr class="even">
+<td style="text-align: center; font-style: italic;">10</td>
+<td style="text-align: center; font-style: italic;">Xyrichtys novacula</td>
+<td style="text-align: center; font-style: italic;">Cyclopsetta chittendeni</td>
+<td style="text-align: center; font-style: italic;">Caulolatilus intermedius</td>
+<td style="text-align: center; font-style: italic;"></td>
+</tr>
+<tr class="odd">
+<td style="text-align: center; font-style: italic;">11</td>
+<td style="text-align: center; font-style: italic;"></td>
+<td style="text-align: center; font-style: italic;">Dorosoma petenense</td>
+<td style="text-align: center; font-style: italic;">Centropristis philadelphica</td>
+<td style="text-align: center; font-style: italic;"></td>
+</tr>
+<tr class="even">
+<td style="text-align: center; font-style: italic;">12</td>
+<td style="text-align: center; font-style: italic;"></td>
+<td style="text-align: center; font-style: italic;">Epinephelus flavolimbatus</td>
+<td style="text-align: center; font-style: italic;">Citharichthys macrops</td>
+<td style="text-align: center; font-style: italic;"></td>
+</tr>
+<tr class="odd">
+<td style="text-align: center; font-style: italic;">13</td>
+<td style="text-align: center; font-style: italic;"></td>
+<td style="text-align: center; font-style: italic;">Etropus crossotus</td>
+<td style="text-align: center; font-style: italic;">Cyclopsetta chittendeni</td>
+<td style="text-align: center; font-style: italic;"></td>
+</tr>
+<tr class="even">
+<td style="text-align: center; font-style: italic;">14</td>
+<td style="text-align: center; font-style: italic;"></td>
+<td style="text-align: center; font-style: italic;">Gymnachirus melas</td>
+<td style="text-align: center; font-style: italic;">Etropus crossotus</td>
+<td style="text-align: center; font-style: italic;"></td>
+</tr>
+<tr class="odd">
+<td style="text-align: center; font-style: italic;">15</td>
+<td style="text-align: center; font-style: italic;"></td>
+<td style="text-align: center; font-style: italic;">Gymnachirus texae</td>
+<td style="text-align: center; font-style: italic;">Gymnachirus texae</td>
+<td style="text-align: center; font-style: italic;"></td>
+</tr>
+<tr class="even">
+<td style="text-align: center; font-style: italic;">16</td>
+<td style="text-align: center; font-style: italic;"></td>
+<td style="text-align: center; font-style: italic;">Gymnothorax nigromarginatus</td>
+<td style="text-align: center; font-style: italic;">Gymnothorax nigromarginatus</td>
+<td style="text-align: center; font-style: italic;"></td>
+</tr>
+<tr class="odd">
+<td style="text-align: center; font-style: italic;">17</td>
+<td style="text-align: center; font-style: italic;"></td>
+<td style="text-align: center; font-style: italic;">Hirundichthys rondeletii</td>
+<td style="text-align: center; font-style: italic;">Hirundichthys rondeletii</td>
+<td style="text-align: center; font-style: italic;"></td>
+</tr>
+<tr class="even">
+<td style="text-align: center; font-style: italic;">18</td>
+<td style="text-align: center; font-style: italic;"></td>
+<td style="text-align: center; font-style: italic;">Histrio histrio</td>
+<td style="text-align: center; font-style: italic;">Histrio histrio</td>
+<td style="text-align: center; font-style: italic;"></td>
+</tr>
+<tr class="odd">
+<td style="text-align: center; font-style: italic;">19</td>
+<td style="text-align: center; font-style: italic;"></td>
+<td style="text-align: center; font-style: italic;">Hoplunnis macrurus</td>
+<td style="text-align: center; font-style: italic;">Hoplunnis macrurus</td>
+<td style="text-align: center; font-style: italic;"></td>
+</tr>
+<tr class="even">
+<td style="text-align: center; font-style: italic;">20</td>
+<td style="text-align: center; font-style: italic;"></td>
+<td style="text-align: center; font-style: italic;">Lutjanus campechanus</td>
+<td style="text-align: center; font-style: italic;">Kathetostoma albigutta</td>
+<td style="text-align: center; font-style: italic;"></td>
+</tr>
+<tr class="odd">
+<td style="text-align: center; font-style: italic;">21</td>
+<td style="text-align: center; font-style: italic;"></td>
+<td style="text-align: center; font-style: italic;">Neomerinthe hemingwayi</td>
+<td style="text-align: center; font-style: italic;">Lutjanus campechanus</td>
+<td style="text-align: center; font-style: italic;"></td>
+</tr>
+<tr class="even">
+<td style="text-align: center; font-style: italic;">22</td>
+<td style="text-align: center; font-style: italic;"></td>
+<td style="text-align: center; font-style: italic;">Pareques umbrosus</td>
+<td style="text-align: center; font-style: italic;">Neomerinthe hemingwayi</td>
+<td style="text-align: center; font-style: italic;"></td>
+</tr>
+<tr class="odd">
+<td style="text-align: center; font-style: italic;">23</td>
+<td style="text-align: center; font-style: italic;"></td>
+<td style="text-align: center; font-style: italic;">Prionotus alatus</td>
+<td style="text-align: center; font-style: italic;">Ophidion grayi</td>
+<td style="text-align: center; font-style: italic;"></td>
+</tr>
+<tr class="even">
+<td style="text-align: center; font-style: italic;">24</td>
+<td style="text-align: center; font-style: italic;"></td>
+<td style="text-align: center; font-style: italic;">Prionotus paralatus</td>
+<td style="text-align: center; font-style: italic;">Paralichthys lethostigma</td>
+<td style="text-align: center; font-style: italic;"></td>
+</tr>
+<tr class="odd">
+<td style="text-align: center; font-style: italic;">25</td>
+<td style="text-align: center; font-style: italic;"></td>
+<td style="text-align: center; font-style: italic;">Prionotus stearnsi</td>
+<td style="text-align: center; font-style: italic;">Pareques umbrosus</td>
+<td style="text-align: center; font-style: italic;"></td>
+</tr>
+<tr class="even">
+<td style="text-align: center; font-style: italic;">26</td>
+<td style="text-align: center; font-style: italic;"></td>
+<td style="text-align: center; font-style: italic;">Rhomboplites aurorubens</td>
+<td style="text-align: center; font-style: italic;">Peprilus burti</td>
+<td style="text-align: center; font-style: italic;"></td>
+</tr>
+<tr class="odd">
+<td style="text-align: center; font-style: italic;">27</td>
+<td style="text-align: center; font-style: italic;"></td>
+<td style="text-align: center; font-style: italic;">Rostroraja texana</td>
+<td style="text-align: center; font-style: italic;">Polydactylus octonemus</td>
+<td style="text-align: center; font-style: italic;"></td>
+</tr>
+<tr class="even">
+<td style="text-align: center; font-style: italic;">28</td>
+<td style="text-align: center; font-style: italic;"></td>
+<td style="text-align: center; font-style: italic;">Sardinella brasiliensis</td>
+<td style="text-align: center; font-style: italic;">Prionotus alatus</td>
+<td style="text-align: center; font-style: italic;"></td>
+</tr>
+<tr class="odd">
+<td style="text-align: center; font-style: italic;">29</td>
+<td style="text-align: center; font-style: italic;"></td>
+<td style="text-align: center; font-style: italic;">Saurida brasiliensis</td>
+<td style="text-align: center; font-style: italic;">Prionotus paralatus</td>
+<td style="text-align: center; font-style: italic;"></td>
+</tr>
+<tr class="even">
+<td style="text-align: center; font-style: italic;">30</td>
+<td style="text-align: center; font-style: italic;"></td>
+<td style="text-align: center; font-style: italic;">Sphoeroides parvus</td>
+<td style="text-align: center; font-style: italic;">Prionotus stearnsi</td>
+<td style="text-align: center; font-style: italic;"></td>
+</tr>
+<tr class="odd">
+<td style="text-align: center; font-style: italic;">31</td>
+<td style="text-align: center; font-style: italic;"></td>
+<td style="text-align: center; font-style: italic;">Squatina dumeril</td>
+<td style="text-align: center; font-style: italic;">Prionotus tribulus</td>
+<td style="text-align: center; font-style: italic;"></td>
+</tr>
+<tr class="even">
+<td style="text-align: center; font-style: italic;">32</td>
+<td style="text-align: center; font-style: italic;"></td>
+<td style="text-align: center; font-style: italic;">Stephanolepis hispida</td>
+<td style="text-align: center; font-style: italic;">Rhomboplites aurorubens</td>
+<td style="text-align: center; font-style: italic;"></td>
+</tr>
+<tr class="odd">
+<td style="text-align: center; font-style: italic;">33</td>
+<td style="text-align: center; font-style: italic;"></td>
+<td style="text-align: center; font-style: italic;">Symphurus civitatium</td>
+<td style="text-align: center; font-style: italic;">Rostroraja texana</td>
+<td style="text-align: center; font-style: italic;"></td>
+</tr>
+<tr class="even">
+<td style="text-align: center; font-style: italic;">34</td>
+<td style="text-align: center; font-style: italic;"></td>
+<td style="text-align: center; font-style: italic;">Symphurus diomedeanus</td>
+<td style="text-align: center; font-style: italic;">Sardinella brasiliensis</td>
+<td style="text-align: center; font-style: italic;"></td>
+</tr>
+<tr class="odd">
+<td style="text-align: center; font-style: italic;">35</td>
+<td style="text-align: center; font-style: italic;"></td>
+<td style="text-align: center; font-style: italic;">Symphurus plagiusa</td>
+<td style="text-align: center; font-style: italic;">Saurida brasiliensis</td>
+<td style="text-align: center; font-style: italic;"></td>
+</tr>
+<tr class="even">
+<td style="text-align: center; font-style: italic;">36</td>
+<td style="text-align: center; font-style: italic;"></td>
+<td style="text-align: center; font-style: italic;">Urophycis floridana</td>
+<td style="text-align: center; font-style: italic;">Sphoeroides parvus</td>
+<td style="text-align: center; font-style: italic;"></td>
+</tr>
+<tr class="odd">
+<td style="text-align: center; font-style: italic;">37</td>
+<td style="text-align: center; font-style: italic;"></td>
+<td style="text-align: center; font-style: italic;">Urophycis regia</td>
+<td style="text-align: center; font-style: italic;">Squatina dumeril</td>
+<td style="text-align: center; font-style: italic;"></td>
+</tr>
+<tr class="even">
+<td style="text-align: center; font-style: italic;">38</td>
+<td style="text-align: center; font-style: italic;"></td>
+<td style="text-align: center; font-style: italic;"></td>
+<td style="text-align: center; font-style: italic;">Stenotomus caprinus</td>
+<td style="text-align: center; font-style: italic;"></td>
+</tr>
+<tr class="odd">
+<td style="text-align: center; font-style: italic;">39</td>
+<td style="text-align: center; font-style: italic;"></td>
+<td style="text-align: center; font-style: italic;"></td>
+<td style="text-align: center; font-style: italic;">Stephanolepis hispida</td>
+<td style="text-align: center; font-style: italic;"></td>
+</tr>
+<tr class="even">
+<td style="text-align: center; font-style: italic;">40</td>
+<td style="text-align: center; font-style: italic;"></td>
+<td style="text-align: center; font-style: italic;"></td>
+<td style="text-align: center; font-style: italic;">Symphurus civitatium</td>
+<td style="text-align: center; font-style: italic;"></td>
+</tr>
+<tr class="odd">
+<td style="text-align: center; font-style: italic;">41</td>
+<td style="text-align: center; font-style: italic;"></td>
+<td style="text-align: center; font-style: italic;"></td>
+<td style="text-align: center; font-style: italic;">Symphurus diomedeanus</td>
+<td style="text-align: center; font-style: italic;"></td>
+</tr>
+<tr class="even">
+<td style="text-align: center; font-style: italic;">42</td>
+<td style="text-align: center; font-style: italic;"></td>
+<td style="text-align: center; font-style: italic;"></td>
+<td style="text-align: center; font-style: italic;">Symphurus plagiusa</td>
+<td style="text-align: center; font-style: italic;"></td>
+</tr>
+<tr class="odd">
+<td style="text-align: center; font-style: italic;">43</td>
+<td style="text-align: center; font-style: italic;"></td>
+<td style="text-align: center; font-style: italic;"></td>
+<td style="text-align: center; font-style: italic;">Urophycis floridana</td>
+<td style="text-align: center; font-style: italic;"></td>
+</tr>
+<tr class="even">
+<td style="text-align: center; font-style: italic;">44</td>
+<td style="text-align: center; font-style: italic;"></td>
+<td style="text-align: center; font-style: italic;"></td>
+<td style="text-align: center; font-style: italic;">Urophycis regia</td>
+<td style="text-align: center; font-style: italic;"></td>
+</tr>
+</tbody>
+</table>
+
+
+</div>
+</div>
+<p><strong>Table 5.</strong> The temperate fish species that have significantly shifted their geographical center of biomass (gCOB) over time.</p>
+<div class="cell">
+<div class="cell-output-display">
+<table data-quarto-postprocess="true" class="table table-sm table-striped small">
+<thead>
+<tr class="header">
+<th style="text-align: center;" data-quarto-table-cell-role="th">index</th>
+<th style="text-align: center;" data-quarto-table-cell-role="th">north</th>
+<th style="text-align: center;" data-quarto-table-cell-role="th">south</th>
+<th style="text-align: center;" data-quarto-table-cell-role="th">west</th>
+<th style="text-align: center;" data-quarto-table-cell-role="th">east</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: center; font-style: italic;">1</td>
+<td style="text-align: center; font-style: italic;"></td>
+<td style="text-align: center; font-style: italic;"></td>
+<td style="text-align: center; font-style: italic;">Orthopristis chrysoptera</td>
+<td style="text-align: center; font-style: italic;"></td>
+</tr>
+</tbody>
+</table>
+
+
+</div>
+</div>
+<p><strong>Table 6.</strong> The deep-water fish species that have significantly shifted their geographical center of biomass (gCOB) over time.</p>
+<div class="cell">
+<div class="cell-output-display">
+<table data-quarto-postprocess="true" class="table table-sm table-striped small">
+<thead>
+<tr class="header">
+<th style="text-align: center;" data-quarto-table-cell-role="th">index</th>
+<th style="text-align: center;" data-quarto-table-cell-role="th">north</th>
+<th style="text-align: center;" data-quarto-table-cell-role="th">south</th>
+<th style="text-align: center;" data-quarto-table-cell-role="th">west</th>
+<th style="text-align: center;" data-quarto-table-cell-role="th">east</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: center; font-style: italic;">1</td>
+<td style="text-align: center; font-style: italic;">Gymnura micrura</td>
+<td style="text-align: center; font-style: italic;">Citharichthys cornutus</td>
+<td style="text-align: center; font-style: italic;">Peristedion gracile</td>
+<td style="text-align: center; font-style: italic;"></td>
+</tr>
+<tr class="even">
+<td style="text-align: center; font-style: italic;">2</td>
+<td style="text-align: center; font-style: italic;"></td>
+<td style="text-align: center; font-style: italic;">Foetorepus agassizii</td>
+<td style="text-align: center; font-style: italic;">Synagrops spinosa</td>
+<td style="text-align: center; font-style: italic;"></td>
+</tr>
+<tr class="odd">
+<td style="text-align: center; font-style: italic;">3</td>
+<td style="text-align: center; font-style: italic;"></td>
+<td style="text-align: center; font-style: italic;">Peristedion gracile</td>
+<td style="text-align: center; font-style: italic;">Urophycis cirrata</td>
+<td style="text-align: center; font-style: italic;"></td>
+</tr>
+<tr class="even">
+<td style="text-align: center; font-style: italic;">4</td>
+<td style="text-align: center; font-style: italic;"></td>
+<td style="text-align: center; font-style: italic;">Synagrops spinosa</td>
+<td style="text-align: center; font-style: italic;"></td>
+<td style="text-align: center; font-style: italic;"></td>
+</tr>
+</tbody>
+</table>
+
+
+</div>
+</div>
+<div class="cell">
+<div class="cell-output-display">
+<p><img src="9_westernGoM_summer_files/figure-html/Fig_2-1.png" class="img-fluid" width="816"></p>
+</div>
+</div>
+<p><strong>Figure 2.</strong> Latitudinal trends in gCOBs for fish species (deep-water, subtropical, temperate, tropical).</p>
+<div class="cell">
+<div class="cell-output-display">
+<p><img src="9_westernGoM_summer_files/figure-html/Fig_3-1.png" class="img-fluid" width="816"></p>
+</div>
+</div>
+<p><strong>Figure 3.</strong> Longitudinal trends in gCOBs for fish species (deep-water, subtropical, temperate, tropical).</p>
+<div style="page-break-after: always;"></div>
+<div class="cell">
+<div class="cell-output-display">
+<p><img src="9_westernGoM_summer_files/figure-html/Fig_4-1.png" class="img-fluid" width="816"></p>
+</div>
+</div>
+<p><strong>Figure 4.</strong> Latitudinal trends in gCOBs for fish species (deep-water, subtropical, tropical) with a significant shift over time. No temperate fish species exhibited a significant shift in latitude gCOB.</p>
+<div class="cell">
+<div class="cell-output-display">
+<p><img src="9_westernGoM_summer_files/figure-html/Fig_5-1.png" class="img-fluid" width="816"></p>
+</div>
+</div>
+<p><strong>Figure 5.</strong> Longitudinal trends in gCOBs for fish species (deep-water, subtropical, temperate, tropical) with a significant shift over time.</p>
+</section>
+</section>
+</section>
+</section>
+
+</main>
+<!-- /main column -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const isCodeAnnotation = (el) => {
+    for (const clz of el.classList) {
+      if (clz.startsWith('code-annotation-')) {                     
+        return true;
+      }
+    }
+    return false;
+  }
+  const clipboard = new window.ClipboardJS('.code-copy-button', {
+    text: function(trigger) {
+      const codeEl = trigger.previousElementSibling.cloneNode(true);
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+  });
+  clipboard.on('success', function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  });
+  function tippyHover(el, contentFn) {
+    const config = {
+      allowHTML: true,
+      content: contentFn,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start'
+    };
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      return note.innerHTML;
+    });
+  }
+      let selectedAnnoteEl;
+      const selectorForAnnotation = ( cell, annotation) => {
+        let cellAttr = 'data-code-cell="' + cell + '"';
+        let lineAttr = 'data-code-annotation="' +  annotation + '"';
+        const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+        return selector;
+      }
+      const selectCodeLines = (annoteEl) => {
+        const doc = window.document;
+        const targetCell = annoteEl.getAttribute("data-target-cell");
+        const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+        const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+        const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+        const lineIds = lines.map((line) => {
+          return targetCell + "-" + line;
+        })
+        let top = null;
+        let height = null;
+        let parent = null;
+        if (lineIds.length > 0) {
+            //compute the position of the single el (top and bottom and make a div)
+            const el = window.document.getElementById(lineIds[0]);
+            top = el.offsetTop;
+            height = el.offsetHeight;
+            parent = el.parentElement.parentElement;
+          if (lineIds.length > 1) {
+            const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+            const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+            height = bottom - top;
+          }
+          if (top !== null && height !== null && parent !== null) {
+            // cook up a div (if necessary) and position it 
+            let div = window.document.getElementById("code-annotation-line-highlight");
+            if (div === null) {
+              div = window.document.createElement("div");
+              div.setAttribute("id", "code-annotation-line-highlight");
+              div.style.position = 'absolute';
+              parent.appendChild(div);
+            }
+            div.style.top = top - 2 + "px";
+            div.style.height = height + 4 + "px";
+            let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+            if (gutterDiv === null) {
+              gutterDiv = window.document.createElement("div");
+              gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+              gutterDiv.style.position = 'absolute';
+              const codeCell = window.document.getElementById(targetCell);
+              const gutter = codeCell.querySelector('.code-annotation-gutter');
+              gutter.appendChild(gutterDiv);
+            }
+            gutterDiv.style.top = top - 2 + "px";
+            gutterDiv.style.height = height + 4 + "px";
+          }
+          selectedAnnoteEl = annoteEl;
+        }
+      };
+      const unselectCodeLines = () => {
+        const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+        elementsIds.forEach((elId) => {
+          const div = window.document.getElementById(elId);
+          if (div) {
+            div.remove();
+          }
+        });
+        selectedAnnoteEl = undefined;
+      };
+      // Attach click handler to the DT
+      const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+      for (const annoteDlNode of annoteDls) {
+        annoteDlNode.addEventListener('click', (event) => {
+          const clickedEl = event.target;
+          if (clickedEl !== selectedAnnoteEl) {
+            unselectCodeLines();
+            const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+            if (activeEl) {
+              activeEl.classList.remove('code-annotation-active');
+            }
+            selectCodeLines(clickedEl);
+            clickedEl.classList.add('code-annotation-active');
+          } else {
+            // Unselect the line
+            unselectCodeLines();
+            clickedEl.classList.remove('code-annotation-active');
+          }
+        });
+      }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+</div> <!-- /content -->
+
+
+
+</body></html>

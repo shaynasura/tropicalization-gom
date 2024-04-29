@@ -27,10 +27,13 @@ plot_lat_long_gCOB_data <- function(lat_data, long_data, title_prefix) {
     geom_vline(xintercept = 0, linetype = "dashed") +
     labs(x = "Estimate (95% CI) of effect of year on latitude gCOB",
          y = "Species",
-         title = paste0(title_prefix, " all latitudinal trends in gCOBs")) +
+         title = paste0(title_prefix, "\nall latitudinal trends in gCOBs")) +
     theme_minimal() +
     theme(legend.position = "none",
-          axis.text.y = element_text(size = 7, face = "italic")) +
+          axis.text.y = element_text(size = 7, face = "italic"),
+          plot.title = element_text(face = "bold",
+                                    hjust = 0.5,
+                                    size = 12)) +
     facet_wrap(~climate_zone, scales = "free_y") +
     scale_y_discrete(labels = function(x) str_to_sentence(x))
   
@@ -54,10 +57,13 @@ plot_lat_long_gCOB_data <- function(lat_data, long_data, title_prefix) {
     geom_vline(xintercept = 0, linetype = "dashed") +
     labs(x = "Estimate (95% CI) of effect of year on longitude gCOB",
          y = "Species",
-         title = paste0(title_prefix, " all longitudinal trends in gCOBs")) +
+         title = paste0(title_prefix, "\nall longitudinal trends in gCOBs")) +
     theme_minimal() +
     theme(legend.position = "none",
-          axis.text.y = element_text(size = 7, face = "italic")) +
+          axis.text.y = element_text(size = 7, face = "italic"),
+          plot.title = element_text(face = "bold",
+                                    hjust = 0.5,
+                                    size = 12)) +
     facet_wrap(~climate_zone, scales = "free_y") +
     scale_y_discrete(labels = function(x) str_to_sentence(x))
   
@@ -84,10 +90,13 @@ plot_lat_long_gCOB_data <- function(lat_data, long_data, title_prefix) {
     geom_vline(xintercept = 0, linetype = "dashed") +
     labs(x = "Estimate (95% CI) of effect of year on latitude gCOB",
          y = "Species",
-         title = paste0(title_prefix, " significant latitudinal shifts in gCOBs")) +
+         title = paste0(title_prefix, "\nsignificant latitudinal shifts in gCOBs")) +
     theme_minimal() +
     theme(legend.position = "none",
-          axis.text.y = element_text(size = 7, face = "italic")) +
+          axis.text.y = element_text(size = 7, face = "italic"),
+          plot.title = element_text(face = "bold",
+                                    hjust = 0.5,
+                                    size = 12)) +
     facet_wrap(~climate_zone, scales = "free_y") +
     scale_y_discrete(labels = function(x) str_to_sentence(x))
   
@@ -114,10 +123,13 @@ plot_lat_long_gCOB_data <- function(lat_data, long_data, title_prefix) {
     geom_vline(xintercept = 0, linetype = "dashed") +
     labs(x = "Estimate (95% CI) of effect of year on longitude gCOB",
          y = "Species",
-         title = paste0(title_prefix, " significant longitudinal shifts in gCOBs")) +
+         title = paste0(title_prefix, "\nsignificant longitudinal shifts in gCOBs")) +
     theme_minimal() +
     theme(legend.position = "none",
-          axis.text.y = element_text(size = 7, face = "italic")) +
+          axis.text.y = element_text(size = 7, face = "italic"),
+          plot.title = element_text(face = "bold",
+                                    hjust = 0.5,
+                                    size = 12)) +
     facet_wrap(~climate_zone, scales = "free_y") +
     scale_y_discrete(labels = function(x) str_to_sentence(x))
   

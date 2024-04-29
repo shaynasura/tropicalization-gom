@@ -42,7 +42,7 @@ combine_and_modify_models <- function(model_list, output_name, pattern) {
   
   
   # Write the combined data frame to a file
-  write.csv(combined_df, file = paste0(output_name, ".csv"), row.names = FALSE)
+  write.csv(combined_df, file = paste0("output/", output_name, ".csv"), row.names = FALSE)
   
   # Return the combined data frame
   return(combined_df)

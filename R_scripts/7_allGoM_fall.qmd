@@ -1,5 +1,5 @@
 ---
-title: "7_allGoM_fall"
+title: "Analysis of SEAMAP data for the entire GoM for the years 2010 - 2022 and fall sampling months of October, November, and December."
 author: "Shayna A. Sura"
 format: html
 ---
@@ -8,7 +8,17 @@ format: html
 
 ## Analysis of SEAMAP Trawl Data
 
-### Data Subset: all of GoM stations for fall trawls (October, November, December)
+### Data Subset: all of GoM stations for fall trawls (October, November, December) in years 2010 - 2022
+
+```{r code to render to pdf format}
+#| echo: false
+#| eval: false
+
+quarto::quarto_render(input = "R_scripts/7_allGoM_fall.qmd", output_format = "pdf")
+
+```
+
+
 
 ```{r load packages}
 #| echo: false
@@ -32,6 +42,7 @@ library(purrr)
 library(broom) # for creating tibbles of model output information
 
 library(knitr) # for formatting tables
+library(kableExtra) # for formatting tables
 
 # libraries for spatial data & animating it...
 library(maps)
@@ -86,6 +97,7 @@ bio_data_clean_yr2010_2022_m101112 <- bio_data_clean %>%
 write_csv(bio_data_clean_yr2010_2022_m101112, file = "data/clean_data/bio_data_clean_yr2010_2022_m101112.csv")
 
 ```
+
 
 ```{r obtain GoM map}
 #| echo: false
@@ -142,8 +154,9 @@ station_data <- data_to_use_here_3 %>%
 
 stations_num_yr <- station_data %>% 
   group_by(YR) %>% 
-  summarize(num_trawls = n(),
-            dates = paste(unique(month(dmy(MO_DAY_YR))), sep = ";", collapse = "; "))
+  summarize('# of trawls' = n(),
+            months = paste(unique(month(dmy(MO_DAY_YR))), sep = ";", collapse = "; ")) %>% 
+  rename(year = YR)
 
 stations_num_yr_formatted <- kable(stations_num_yr)
 
@@ -180,7 +193,8 @@ station_maps <- base_map +
     #                    name = "Year") +
   theme(text = element_text(family = "Times",
                             size = 14),
-        plot.title = element_text(face = "bold"),
+        plot.title = element_text(face = "bold",
+                                  hjust = 0.5),
         axis.title = element_text(size = 12,
                                   face = "bold"),
         axis.text = element_text(size = 10),
@@ -201,6 +215,9 @@ ggsave("plots/station_maps_yr2010_2022_m101112.pdf", plot = station_maps, width 
 ```
 
 **Figure 1.** Trawl sampling locations for each year of data collection for this subset of data (2010-2022 fall sampling in months of October, November, and December).
+
+
+
 
 ```{r get list of fish species taxonomic names}
 #| echo: false
@@ -384,6 +401,10 @@ write_csv(all_significant_95CIs, "output/gCOB_significant_trends_yr2010_2022_m10
 
 ```
 
+
+
+
+
 ```{r formatting summary tables}
 #| echo: false
 
@@ -407,6 +428,10 @@ table_2_formatted <- knitr::kable(table_2)
 ```
 
 **Table 2.** The number of fish species that have significantly shifted latitudinally or longitudinally based upon their gCOBs. `r table_2_formatted`
+
+
+
+
 
 ```{r getting separate tables for each climate zone with the species exhibiting each type of shift}
 #| echo: false

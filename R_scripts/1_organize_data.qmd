@@ -403,7 +403,7 @@ write_csv(bio_data_clean, file = "data/clean_data/bio_data_clean.csv")
 years_to_include <- c(2010:2022)
 months_to_include <- c(6,7,8)
 
-bio_data_post2010
+# bio_data_post2010
 
 bio_data_clean_yr2010_2022_m678 <- bio_data_clean %>% 
   filter(YR %in% years_to_include) %>% 
@@ -420,6 +420,77 @@ bio_data_clean_yr2010_2022_m678 <- bio_data_clean %>%
 
 # write_csv(bio_data_post2010, file = "data/bio_data_post2010.csv")
 write_csv(bio_data_clean_yr2010_2022_m678, file = "data/clean_data/bio_data_clean_yr2010_2022_m678.csv")
+
+```
+
+
+
+# determine longitude cutoff value to analyze the Western GoM across all years
+## looks like latitude of -87.4 is a good cutoff to reliably keep most of the trawling stations in the western GoM where they captured fishes starting back to 1982
+### take this pre2008_station_data and visualize the maps in the 5_map_stations QMD file
+
+```{r determine longitude cut off for western GoM}
+
+years_to_include <- c(1982:2007)
+months_to_include <- c(6,7,8)
+
+pre2008_data <- bio_data_clean %>% 
+  filter(YR %in% years_to_include) %>% 
+  mutate(MONTH = month(dmy(MO_DAY_YR))) %>% 
+  filter(MONTH %in% months_to_include)
+
+
+pre2008_station_data <- pre2008_data %>% 
+  group_by(STATIONID) %>% 
+  summarize(CRUISEID = unique(CRUISEID),
+            VESSEL = unique(VESSEL),
+            CRUISE_NO = unique(CRUISE_NO),
+            P_STA_NO = unique(P_STA_NO),
+            YR = unique(YR),
+            DEPTH_SSTA = unique(DEPTH_SSTA),
+            MO_DAY_YR = unique(MO_DAY_YR),
+            DECSLAT = unique(DECSLAT),
+            DECSLON = unique(DECSLON),
+            DECELAT = unique(DECELAT),
+            DECELON = unique(DECELON),
+            TEMP_SSURF = unique(TEMP_SSURF),
+            TEMP_BOT = unique(TEMP_BOT),
+            TEMP_SAIR = unique(TEMP_SAIR)) %>% 
+  mutate(GoM_side = if_else(DECSLON < -87.4, "western", "eastern"))
+
+view(pre2008_station_data)
+  
+max_longs <- pre2008_station_data %>% 
+  group_by(YR) %>% 
+  summarize(max_Long = max(DECSLON),
+            num_trawls_87.4 = sum(DECSLON < -87.4),
+            num_trawls_east_87.4 = sum(DECSLON > -87.4),
+            prop_trawls_excluded = (sum(DECSLON > -87.4))/sum(DECSLON != "NA"),
+            perc_trawls_excluded = ((sum(DECSLON > -87.4))/sum(DECSLON != "NA"))*100)
+
+
+view(max_longs)
+
+
+```
+
+```{r westernGoM_yr1983_2022_m678}
+
+years_to_include <- c(1983:2022)
+months_to_include <- c(6,7,8)
+
+
+bio_data_clean_yr1983_2022_m678_western <- bio_data_clean %>% 
+  filter(YR %in% years_to_include) %>% 
+  mutate(MONTH = month(dmy(MO_DAY_YR))) %>% 
+  filter(MONTH %in% months_to_include) %>% 
+  filter(DECSLON < -87.4)
+
+
+max(bio_data_clean_yr1983_2022_m678_western$DECSLON)
+
+write_csv(bio_data_clean_yr1983_2022_m678_western, file = "data/clean_data/bio_data_clean_yr1983_2022_m678_western.csv")
+
 
 ```
 
