@@ -281,11 +281,12 @@ There are `r num_species` fish species that were caught in trawls in this subset
 gCOBs_yr1983_2022_m678_western <- list()
 
 # Apply the fish_calculate_gCOB function to each unique species and combine results into a list
-result_list_yr1983_2022_m678_western <- purrr::map(species_vec_yr1983_2022_m678_western, ~fish_calculate_gCOB(data = bio_data_clean_yr1983_2022_m678_western,
-                                                                                                    output_name = "gCOBs_yr1983_2022_m678_western",
-                                                                                                    taxonomic_column = "new_TAXON",
-                                                                                                    common_name_column = "new_TAXON",
-                                                                                                    species_name = .))
+result_list_yr1983_2022_m678_western <- purrr::map(species_vec_yr1983_2022_m678_western,
+                                                   ~fish_calculate_gCOB(data = bio_data_clean_yr1983_2022_m678_western,
+                                                                        output_name = "gCOBs_yr1983_2022_m678_western",
+                                                                        taxonomic_column = "new_TAXON",
+                                                                        common_name_column = "new_TAXON",
+                                                                        species_name = .))
 
 
 
@@ -373,6 +374,13 @@ write_csv(significant_pvalues, file = "output/gCOB_trends_pvalue_summary_yr1983_
 
 
 ```
+
+
+
+
+
+
+
 
 ```{r summarizing trends in gCOBs - 95CI summary}
 #| echo: false
@@ -509,36 +517,18 @@ wide_data <- extracted_data %>%
   select(-row_id) %>%
   arrange(climate_zone)
 
-# # Convert to a data frame to ensure that NULLs are converted to NAs
-# wide_data <- as.data.frame(wide_data)
+
+```
 
 
-# # Modified code to ensure each species has a unique row identifier
-# extracted_data <- species_tables %>%
-#   pivot_longer(cols = -climate_zone, names_to = "direction", values_to = "species_list") %>%
-#   separate_rows(species_list, sep = ",\\s*") %>%
-#   filter(species_list != "") %>%
-#   mutate(direction = str_replace(direction, "_shift_species", "")) %>%
-#   group_by(climate_zone, direction) %>%
-#   mutate(row_id = row_number()) %>%
-#   ungroup()
-# 
-# # Get available direction column names
-# available_directions <- intersect(names(extracted_data), c("north", "south", "east", "west"))
-# 
-# 
-# # Pivot wider while keeping the unique row identifier
-# wide_data <- extracted_data %>%
-#   pivot_wider(names_from = direction, values_from = species_list, values_fn = list) %>%
-#   # glimpse()
-#   # unnest(c(south, west, east, north), names_sep = "_") %>%
-#   unnest(cols = all_of(available_directions), names_sep = "_") %>% 
-#   as.data.frame() %>% 
-#   # # replace NULL values with NA
-#   # mutate(across(all_of(available_directions), ~ ifelse(. == "NULL", NA, .))) %>% 
-#   select(-row_id) %>%
-#   arrange(climate_zone)
 
+
+
+
+
+```{r tropical shifts table}
+#| echo: false
+#| eval: true
 
 # Filter for the tropical climate zone
 tropical_table <- wide_data %>%
@@ -560,8 +550,29 @@ table_3 <- tropical_table %>%
 table_3_formatted <- knitr::kable(table_3, align = paste(rep("c", ncol(table_3)),collapse="")) %>% 
     # Apply italics to all rows except the first one (header row)
   kableExtra::row_spec(1:nrow(table_3), italic = TRUE) %>% 
-  kableExtra::kable_styling(latex_options = "scale_down",
-                            font_size = 9.5)
+  kableExtra::kable_styling(font_size = 8)
+
+```
+
+
+**Table 3.** The tropical fish species that have significantly shifted their geographical center of biomass (gCOB) over time.
+
+`r table_3_formatted`
+```{r}
+#| echo: false
+#| eval: false
+
+table_3_formatted
+
+# `r table_3_formatted`
+```
+
+\newpage
+
+
+```{r subtropical shifts table}
+#| echo: false
+#| eval: true
 
 
 # Filter for the subtropical climate zone
@@ -579,12 +590,33 @@ table_4 <- subtropical_table %>%
 
 table_4_formatted <- knitr::kable(table_4, align = paste(rep("c", ncol(table_4)),collapse="")) %>% 
     # Apply italics to all rows except the first one (header row)
-  kableExtra::row_spec(1:nrow(table_4), italic = TRUE)
-# %>% 
-#   kableExtra::kable_styling(latex_options = "scale_down",
-#                             font_size = 8)
+  kableExtra::row_spec(1:nrow(table_4), italic = TRUE) %>%
+  kableExtra::kable_styling(font_size = 7.5)
 
 
+```
+
+
+
+
+
+**Table 4.** The subtropical fish species that have significantly shifted their geographical center of biomass (gCOB) over time.
+`r table_4_formatted`
+
+```{r}
+#| echo: false
+#| eval: false
+
+table_4_formatted
+
+# `r table_4_formatted`
+```
+
+
+
+```{r temperate shifts table}
+#| echo: false
+#| eval: true
 
 # Filter for the temperate climate zone
 temperate_table <- wide_data %>%
@@ -601,10 +633,31 @@ table_5 <- temperate_table %>%
 
 table_5_formatted <- knitr::kable(table_5, align = paste(rep("c", ncol(table_5)),collapse="")) %>% 
     # Apply italics to all rows except the first one (header row)
-  kableExtra::row_spec(1:nrow(table_5), italic = TRUE) %>% 
-  kableExtra::kable_styling(full_width = T)
+  kableExtra::row_spec(1:nrow(table_5), italic = TRUE)
 
 
+```
+
+
+\newpage
+
+**Table 5.** The temperate fish species that have significantly shifted their geographical center of biomass (gCOB) over time.
+
+`r table_5_formatted`
+```{r}
+#| echo: false
+#| eval: false
+
+table_5_formatted
+
+# `r table_5_formatted`
+```
+
+
+
+```{r deepwater shifts table}
+#| echo: false
+#| eval: true
 
 # Filter for the deep-water species
 deepwater_table <- wide_data %>%
@@ -621,53 +674,10 @@ table_6 <- deepwater_table %>%
 
 table_6_formatted <- knitr::kable(table_6, align = paste(rep("c", ncol(table_6)),collapse="")) %>% 
   # Apply italics to all rows except the first one (header row)
-  kableExtra::row_spec(1:nrow(table_6), italic = TRUE) %>% 
-  kableExtra::kable_styling(full_width = T)
-
+  kableExtra::row_spec(1:nrow(table_6), italic = TRUE)
 
 ```
 
-
-
-**Table 3.** The tropical fish species that have significantly shifted their geographical center of biomass (gCOB) over time.
-
-`r table_3_formatted`
-```{r}
-#| echo: false
-#| eval: false
-
-table_3_formatted
-
-# `r table_3_formatted`
-```
-
-\newpage
-
-**Table 4.** The subtropical fish species that have significantly shifted their geographical center of biomass (gCOB) over time.
-
-`r table_4_formatted`
-```{r}
-#| echo: false
-#| eval: false
-
-table_4_formatted
-
-# `r table_4_formatted`
-```
-
-
-
-**Table 5.** The temperate fish species that have significantly shifted their geographical center of biomass (gCOB) over time.
-
-`r table_5_formatted`
-```{r}
-#| echo: false
-#| eval: false
-
-table_5_formatted
-
-# `r table_5_formatted`
-```
 
 
 
@@ -744,7 +754,7 @@ Fig_3_yr1983_2022_m678_western
 
 
 
-```{r Fig_5,  fig.width=8.5, fig.height=9.5}
+```{r Fig_5,  fig.width=8.8, fig.height=10.5}
 #| echo: false
 
 Fig_4_yr1983_2022_m678_western

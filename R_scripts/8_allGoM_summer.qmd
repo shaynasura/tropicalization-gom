@@ -100,7 +100,7 @@ species_climate_df <- read_csv(file = "output/species_climate_data.csv")
 # import csv of clean bio data
 bio_data_clean <- read_csv(file = "data/clean_data/bio_data_clean.csv")
 
-# import csv with cimate zone information for each fish species as web scraped from FishBase
+# import csv with climate zone information for each fish species as web scraped from FishBase
 species_climate_df <- read_csv(file = "output/species_climate_data.csv")
 
 
@@ -192,7 +192,6 @@ write_csv(stations_num_yr, file = "output/stations_num_yr_yr2010_2022_m678.csv")
 
 ```
 
-\newpage
 
 **Table 1.** Number of trawl stations for each year of data and the fall months during which sampling took place (6 = June, 7 = July, 8 = August).
 `r stations_num_yr_formatted`
@@ -200,9 +199,9 @@ write_csv(stations_num_yr, file = "output/stations_num_yr_yr2010_2022_m678.csv")
 
 \newpage
 
-#### Map of trawl stations
 
-```{r map the trawl station locations, fig.width=6.5, fig.height=7.8}
+
+```{r map the trawl station locations, fig.width=6.5, fig.height=6}
 #| echo: false
 
 
@@ -237,8 +236,8 @@ station_maps <- base_map +
                                     hjust = 0.5),
         legend.text = element_text(size = 10),
         legend.position = "none") +
-  labs(title = "Trawl Stations: 2010 - 2022\nJune, July, August for entire GoM") +
-  facet_wrap(~YR, ncol = 5)
+  labs(title = "Trawl Stations for entire GoM\n2010 - 2022 June, July, August") +
+  facet_wrap(~YR, ncol = 3)
 
 
 station_maps
@@ -272,6 +271,509 @@ num_species <- length(species_vec_yr2010_2022_m678) # 500 unique taxonomic names
 ```
 
 There are `r num_species` fish species that were caught in trawls in this subset of data.
+
+
+
+
+```{r gCOB analyses}
+#| echo: false
+
+# Step 1 - use fish_calculate_gCOB function
+# Applying the gCOB calculate function to each unique species for the dataset only containing 2010 - 2022 data
+# create an empty list to store cg dataframe
+gCOBs_yr2010_2022_m678 <- list()
+
+# Apply the fish_calculate_gCOB function to each unique species and combine results into a list
+result_list_yr2010_2022_m678 <- purrr::map(species_vec_yr2010_2022_m678,
+                                                   ~fish_calculate_gCOB(data = bio_data_clean_yr2010_2022_m678,
+                                                                        output_name = "gCOBs_yr2010_2022_m678",
+                                                                        taxonomic_column = "new_TAXON",
+                                                                        common_name_column = "new_TAXON",
+                                                                        species_name = .))
+
+
+
+# Step 2 - filter to only include fish species with 5+ gCOB observations
+# Filter the list of data frames
+gCOBs_yr2010_2022_m678 <- filter_gCOB_dataframes(gCOBs_yr2010_2022_m678, min_years = 5)
+
+# get updated list of fish species names
+species_vec_yr2010_2022_m678 <- gsub("_gCOB", "", names(gCOBs_yr2010_2022_m678))
+
+# get number of fish species in filtered dataset
+filtered_num_species <- length(species_vec_yr2010_2022_m678)
+
+
+
+# Step 3 - use test_gCOBs_over_time function
+# initiate empty data frame to store data in
+gCOB_trends_yr2010_2022_m678 <- data.frame(species = NA,
+                                              latitude_year_coef = NA,
+                                              latitude_year_SE = NA,
+                                              latitude_pvalue = NA,
+                                              latitude_rsquared = NA,
+                                              latitude_rsquared_adj = NA,
+                                              longitude_year_coef = NA,
+                                              longitude_year_SE = NA,
+                                              longitude_pvalue = NA,
+                                              longitude_rsquared = NA,
+                                              longitude_rsquared_adj = NA)
+
+# initiate empty lists to store latitude and longitude model outputs
+lat_models_yr2010_2022_m678 <- list()
+long_models_yr2010_2022_m678 <- list()
+
+# apply function
+trends_results_yr2010_2022_m678 <- purrr::map(species_vec_yr2010_2022_m678,
+                                                 ~ test_gCOBs_over_time(species_name = .,
+                                                                        input_gCOBs = gCOBs_yr2010_2022_m678,
+                                                                        output_df_name = "gCOB_trends_yr2010_2022_m678",
+                                                                        latitude_models_output_name = "lat_models_yr2010_2022_m678",
+                                                                        longitude_models_output_name = "long_models_yr2010_2022_m678"))
+
+# remove row of NAs at beginning of dataframe
+gCOB_trends_yr2010_2022_m678 <- gCOB_trends_yr2010_2022_m678 %>% 
+  slice(-1)
+
+
+# export results as csv file
+write_csv(gCOB_trends_yr2010_2022_m678, file = "output/gCOB_trends_results_raw_yr2010_2022_m678.csv")
+
+
+```
+
+Of those `r num_species` fish species, only `r filtered_num_species` of them had gCOB values for at least 5 years. For these fish species, linear models were constructed to test if their latitude and longitude gCOBs had shifted over time.
+
+```{r summarizing trends in gCOBs - pvalue summary}
+#| echo: false
+
+# Version 1 - summarizing based on p-values
+# specify the gCOB trends dataframe to use here
+gCOB_trends_data <- gCOB_trends_yr2010_2022_m678 
+
+# join climate zone information to gCOB_trends
+climate_gCOB_trends <- gCOB_trends_data %>%
+  rename(species_name = species) %>%
+  left_join(species_climate_df, join_by(species_name)) %>% 
+  rename(species = species_name)
+
+
+# summarize the number of fish species that show significant shifts in latitude or longitude based on significant p-values
+significant_pvalues <- climate_gCOB_trends %>% 
+  group_by(climate_zone) %>% 
+  summarize(n = n(),
+            num_sig_pvalues_lat = length(which(latitude_pvalue < 0.05)),
+            num_sig_pvalues_long = length(which(longitude_pvalue < 0.05)),
+            num_sig_lat_shift_north = length(which(latitude_pvalue < 0.05 & latitude_year_coef > 0)),
+            num_sig_lat_shift_south = length(which(latitude_pvalue < 0.05 & latitude_year_coef < 0)),
+            num_sig_long_shift_west = length(which(longitude_pvalue < 0.05 & longitude_year_coef < 0)),
+            num_sig_long_shift_east = length(which(longitude_pvalue < 0.05 & longitude_year_coef > 0))
+  )
+         
+# significant_pvalues
+
+# export to csv file
+write_csv(significant_pvalues, file = "output/gCOB_trends_pvalue_summary_yr2010_2022_m678.csv")
+
+
+```
+
+
+
+
+```{r summarizing trends in gCOBs - 95CI summary}
+#| echo: false
+
+# Step 1 - use combine_and_modify_models function to get single dataframe of model results from lists of model output
+# latitudinal models
+lat_models_df_yr2010_2022_m678 <- combine_and_modify_models(model_list = lat_models_yr2010_2022_m678,
+                                                               output_name = "lat_models_df_yr2010_2022_m678",
+                                                               pattern = "latitude")
+# longitudinal models
+long_models_df_yr2010_2022_m678 <- combine_and_modify_models(model_list = long_models_yr2010_2022_m678,
+                                                                output_name = "long_models_df_yr2010_2022_m678",
+                                                                pattern = "longitude")
+
+
+# Step 2 - summarize trends based on 95CIs not overlapping with zero
+
+# summarize the number of fish species that show significant shifts in latitude or longitude based on 95CIs that do not overlap with zero
+## latitude models
+significant_95CIs_lat <- lat_models_df_yr2010_2022_m678 %>% 
+  filter(term != "(Intercept)") %>%
+  mutate(signif_95CI = ifelse(conf.low < 0 & conf.high > 0, "not significant", "significant")) %>% 
+  mutate(signif_pvalue = ifelse(p.value < 0.05, "significant", "not significant")) %>% 
+  group_by(climate_zone) %>% 
+  summarize(n = n(),
+            num_sig_95CIs_lat = sum(signif_95CI == "significant"),
+            num_sig_pvalues_lat = sum(signif_pvalue == "significant"),
+            num_sig_95CIs_lat_shift_north = sum(signif_95CI == "significant" & estimate > 0),
+            num_sig_95CIs_lat_shift_south = sum(signif_95CI == "significant" & estimate < 0),
+            north_shift_species = paste(species[signif_95CI == "significant" & estimate > 0], collapse = ", "),
+            south_shift_species = paste(species[signif_95CI == "significant" & estimate < 0], collapse = ", ")
+  )
+
+
+## longitude models
+significant_95CIs_long <- long_models_df_yr2010_2022_m678 %>% 
+  filter(term != "(Intercept)") %>%
+  mutate(signif_95CI = ifelse(conf.low < 0 & conf.high > 0, "not significant", "significant")) %>% 
+  mutate(signif_pvalue = ifelse(p.value < 0.05, "significant", "not significant")) %>% 
+  group_by(climate_zone) %>% 
+  summarize(n = n(),
+            num_sig_95CIs_long = sum(signif_95CI == "significant"),
+            num_sig_pvalues_long = sum(signif_pvalue == "significant"),
+            num_sig_95CIs_long_shift_west = sum(signif_95CI == "significant" & estimate < 0),
+            num_sig_95CIs_long_shift_east = sum(signif_95CI == "significant" & estimate > 0),
+            west_shift_species = paste(species[signif_95CI == "significant" & estimate < 0], collapse = ", "),
+            east_shift_species = paste(species[signif_95CI == "significant" & estimate > 0], collapse = ", ")
+  )
+
+
+## combine output from latitude and longitude summary dataframes
+all_significant_95CIs <- significant_95CIs_lat %>% 
+  left_join(significant_95CIs_long, join_by(climate_zone))
+
+
+## export to csv file
+write_csv(all_significant_95CIs, "output/gCOB_significant_trends_yr2010_2022_m678.csv")
+
+
+```
+
+
+
+
+
+```{r formatting summary tables}
+#| echo: false
+
+
+table_2 <- all_significant_95CIs %>% 
+  select(-north_shift_species, -south_shift_species, -west_shift_species, -east_shift_species,
+         -n.y,
+         -num_sig_pvalues_lat, -num_sig_pvalues_long) %>% 
+  rename('climate zone' = climate_zone,
+         'n' = n.x,
+         'significant latitude shift' = num_sig_95CIs_lat,
+         'North shifted' = num_sig_95CIs_lat_shift_north,
+         'South shifted'= num_sig_95CIs_lat_shift_south,
+         'significant longitude shift' = num_sig_95CIs_long,
+         'East shifted' = num_sig_95CIs_long_shift_east,
+         'West shifted'= num_sig_95CIs_long_shift_west)
+
+table_2_formatted <- knitr::kable(table_2, align = "cccccccc")
+# %>% 
+  # kableExtra::kable_styling(latex_options = "scale_down",
+  #                           font_size = 7)
+
+
+
+```
+
+
+\newpage
+
+**Table 2.** The number of fish species that have significantly shifted latitudinally or longitudinally based upon their gCOBs.
+`r table_2_formatted`
+
+
+
+
+
+```{r getting separate tables for each climate zone with the species exhibiting each type of shift}
+#| echo: false
+#| warning: false
+
+# set global options to replace NA with empty strings
+opts <- options(knitr.kable.NA = "")
+
+
+species_tables <- all_significant_95CIs %>% 
+  select(climate_zone, north_shift_species, south_shift_species, west_shift_species, east_shift_species)
+
+
+# Modified code to ensure each species has a unique row identifier
+extracted_data <- species_tables %>%
+  pivot_longer(cols = -climate_zone, names_to = "direction", values_to = "species_list") %>%
+  separate_rows(species_list, sep = ",\\s*") %>%
+  filter(species_list != "") %>%
+  mutate(direction = str_replace(direction, "_shift_species", "")) %>%
+  group_by(climate_zone, direction) %>%
+  mutate(row_id = row_number()) %>%
+  ungroup()
+
+# Get available direction column names
+available_directions <- intersect(names(extracted_data), c("north", "south", "east", "west"))
+
+# Pivot wider while keeping the unique row identifier
+wide_data <- extracted_data %>%
+  pivot_wider(
+    names_from = direction,
+    values_from = species_list,
+    values_fill = NA # Fill missing values with NA instead of creating a list
+  ) %>%
+  select(-row_id) %>%
+  arrange(climate_zone)
+
+
+```
+
+
+
+
+
+```{r tropical shifts table}
+#| echo: false
+#| eval: true
+
+# Filter for the tropical climate zone
+tropical_table <- wide_data %>%
+  filter(climate_zone == "tropical") %>%
+  select(-climate_zone) %>% 
+  mutate(index = row_number()) %>% 
+  select(index, everything()) 
+  
+
+# get directions of significant shifts
+tropical_directions <- intersect(names(tropical_table), c("north", "south", "east", "west"))
+
+# Output the tropical table
+# tropical_table
+
+table_3 <- tropical_table %>% 
+  mutate(across(all_of(tropical_directions), str_to_sentence))
+
+table_3_formatted <- knitr::kable(table_3, align = paste(rep("c", ncol(table_3)),collapse="")) %>% 
+    # Apply italics to all rows except the first one (header row)
+  kableExtra::row_spec(1:nrow(table_3), italic = TRUE) %>% 
+  kableExtra::kable_styling(font_size = 8)
+
+```
+
+
+**Table 3.** The tropical fish species that have significantly shifted their geographical center of biomass (gCOB) over time.
+
+`r table_3_formatted`
+```{r}
+#| echo: false
+#| eval: false
+
+table_3_formatted
+
+# `r table_3_formatted`
+```
+
+
+
+
+```{r subtropical shifts table}
+#| echo: false
+#| eval: true
+
+
+# Filter for the subtropical climate zone
+subtropical_table <- wide_data %>%
+  filter(climate_zone == "subtropical") %>%
+  select(-climate_zone) %>% 
+  mutate(index = row_number()) %>% 
+  select(index, everything())
+
+# get directions of significant shifts
+subtropical_directions <- intersect(names(subtropical_table), c("north", "south", "east", "west"))
+
+table_4 <- subtropical_table %>% 
+  mutate(across(all_of(subtropical_directions), str_to_sentence))
+
+table_4_formatted <- knitr::kable(table_4, align = paste(rep("c", ncol(table_4)),collapse="")) %>% 
+    # Apply italics to all rows except the first one (header row)
+  kableExtra::row_spec(1:nrow(table_4), italic = TRUE) %>%
+  kableExtra::kable_styling(font_size = 8)
+
+
+```
+
+
+
+\newpage
+
+**Table 4.** The subtropical fish species that have significantly shifted their geographical center of biomass (gCOB) over time.
+`r table_4_formatted`
+
+```{r}
+#| echo: false
+#| eval: false
+
+table_4_formatted
+
+# `r table_4_formatted`
+```
+
+
+
+
+```{r temperate shifts table}
+#| echo: false
+#| eval: true
+
+# Filter for the temperate climate zone
+temperate_table <- wide_data %>%
+  filter(climate_zone == "temperate") %>%
+  select(-climate_zone) %>% 
+  mutate(index = row_number()) %>% 
+  select(index, everything())
+
+# get directions of significant shifts
+temperate_directions <- intersect(names(temperate_table), c("north", "south", "east", "west"))
+
+table_5 <- temperate_table %>% 
+  mutate(across(all_of(temperate_directions), str_to_sentence))
+
+table_5_formatted <- knitr::kable(table_5, align = paste(rep("c", ncol(table_5)),collapse="")) %>% 
+    # Apply italics to all rows except the first one (header row)
+  kableExtra::row_spec(1:nrow(table_5), italic = TRUE)
+# %>% 
+#   kableExtra::kable_styling(full_width = T)
+
+```
+
+
+
+
+**Table 5.** The temperate fish species that have significantly shifted their geographical center of biomass (gCOB) over time.
+
+`r table_5_formatted`
+```{r}
+#| echo: false
+#| eval: false
+
+table_5_formatted
+
+# `r table_5_formatted`
+```
+
+
+
+```{r deepwater shifts table}
+#| echo: false
+#| eval: true
+
+# Filter for the deep-water species
+deepwater_table <- wide_data %>%
+  filter(climate_zone == "deep-water") %>%
+  select(-climate_zone) %>% 
+  mutate(index = row_number()) %>% 
+  select(index, everything())
+
+# get directions of significant shifts
+deepwater_directions <- intersect(names(deepwater_table), c("north", "south", "east", "west"))
+
+table_6 <- deepwater_table %>% 
+  mutate(across(all_of(deepwater_directions), str_to_sentence))
+
+table_6_formatted <- knitr::kable(table_6, align = paste(rep("c", ncol(table_6)),collapse="")) %>% 
+  # Apply italics to all rows except the first one (header row)
+  kableExtra::row_spec(1:nrow(table_6), italic = TRUE)
+# %>% 
+#   kableExtra::kable_styling(full_width = T)
+
+```
+
+
+
+**NOTE:** None of the deepwater fish species in this data subset exhibited significant shifts in their latitude or longitude gCOBs.
+
+
+```{r}
+#| echo: false
+#| eval: false
+
+table_6_formatted
+
+# `r table_6_formatted`
+
+
+# **Table 6.** The deep-water fish species that have significantly shifted their geographical center of biomass (gCOB) over time.
+# 
+# `r table_6_formatted`
+```
+
+
+
+```{r make figures of gCOB coefficient estimates}
+#| echo: false
+
+plot_lat_long_gCOB_data(lat_data = lat_models_df_yr2010_2022_m678,
+                        long_data = long_models_df_yr2010_2022_m678,
+                        title_prefix = "2010-2022 June, July, & August")
+
+
+# should produce four figures
+# Fig_1_yr2010_2022_m678
+# Fig_2_yr2010_2022_m678
+# Fig_3_yr2010_2022_m678
+# Fig_4_yr2010_2022_m678
+
+
+```
+
+
+```{r Fig_2,  fig.width=8.5, fig.height=13}
+#| echo: false
+
+Fig_1_yr2010_2022_m678
+
+# fig.cap = "all species latitude gCOBs",
+
+```
+
+**Figure 2.** Latitudinal trends in gCOBs for fish species (deep-water, subtropical, temperate, tropical).
+
+
+
+
+```{r Fig_3,  fig.width=8.5, fig.height=13}
+#| echo: false
+
+Fig_2_yr2010_2022_m678
+
+# fig.cap = "all species longitude gCOBs",
+
+```
+
+**Figure 3.** Longitudinal trends in gCOBs for fish species (deep-water, subtropical, temperate, tropical).
+
+\newpage
+
+```{r Fig_4,  fig.width=6.5, fig.height=7.5}
+#| echo: false
+
+Fig_3_yr2010_2022_m678
+
+# fig.cap = "significant latitude gCOBs",
+
+```
+
+**Figure 4.** Latitudinal trends in gCOBs for fish species (deep-water, subtropical, tropical) with a significant shift over time. No temperate fish species exhibited a significant shift in latitude gCOB.
+
+
+
+```{r Fig_5,  fig.width=6.5, fig.height=7.5}
+#| echo: false
+
+Fig_4_yr2010_2022_m678
+
+# fig.cap = "significant longitude gCOBs",
+
+```
+
+**Figure 5.** Longitudinal trends in gCOBs for fish species (deep-water, subtropical, temperate, tropical) with a significant shift over time.
+
+
+
+
+
+
 
 
 
