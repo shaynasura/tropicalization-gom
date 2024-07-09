@@ -1,0 +1,137 @@
+---
+title: "10_rasterizing_data"
+author: "Shayna A. Sura"
+format: pdf
+---
+
+## Load packages
+
+
+
+```{r}
+
+library(tidyverse) # includes and loads the packages listed below
+# library(readr)
+# library(tidyr)
+# library(dplyr)
+# library(ggplot2)
+# library(lubridate)
+
+library(terra)
+
+library(here) # helps with paths for files
+
+```
+
+
+### Read in cleaned data to analyze
+
+```{r reading in cleaned bio data}
+#| echo: false
+#| message: false
+
+bio_data_clean_all <- read_csv(file = "data/clean_data/bio_data_clean.csv")
+
+# bio_data_clean_yr2010_2022_m678 <- read_csv(file = "data/clean_data/bio_data_clean_yr2010_2022_m678.csv")
+
+# head(bio_data_clean)
+
+
+# import csv with cimate zone information for each fish species as web scraped from FishBase
+species_climate_df <- read_csv(file = "output/species_climate_data.csv")
+
+```
+
+
+```{r}
+
+# join climate zone information to gCOB_trends
+bio_data_final <- bio_data_clean_all %>%
+  rename(species_name = new_TAXON) %>%
+  left_join(species_climate_df, join_by(species_name)) %>% 
+  rename(new_TAXON = species_name)
+
+```
+
+
+# create an empty SpatRaster to store my data in
+
+```{r}
+
+# Determine extent from data
+xmin <- -98.438
+xmax <- -79.519
+ymin <- 12.082
+ymax <- 33.505
+
+# Determine resolution
+res <- .0001  # Resolution in degrees
+
+# Create SpatRaster template
+raster_template <- rast(xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax, resolution = res)
+
+# Print out the raster_template object
+print(raster_template)
+
+```
+
+# extracting points from dataset
+```{r}
+
+coordinates <- cbind(bio_data_final$DECSLON,
+                     bio_data_final$DECSLAT)
+points <- vect(coordinates, crs = "+proj=longlat +datum=WGS84")
+
+# points <- attr(points, "species") <- bio_data_final$new_TAXON
+
+at(points) <- list(species = bio_data_final$new_TAXON)
+
+```
+
+
+NAD84 CRS is good for North America
+Equal area projection - preserves area regardless of latitude / longitude values
+ - I should look in one of these kinds because I'm interested in space
+ - can look at actual distances for calculations.
+ - don't necessarily do visualizations in this projection, but do calculations in this projection.
+ 
+
+# rasterize my data
+```{r}
+
+rasterized <- rasterize(points, raster_template, field = 1)
+plot(rasterized)
+plot(points)
+
+
+lionfish<-subset(points, species=="PTEROIS VOLITANS")
+
+plot(lionfish)
+"PTEROIS VOLITANS"
+
+
+# terra::rasterize(bio_data_final)
+
+```
+
+
+
+```{r}
+
+install.packages("sf")
+library(sf)
+
+data<-st_as_sf(bio_data_final, coords=c("DECSLON", "DECSLAT"), crs=4326)
+try<-subset(data, new_TAXON=="PTEROIS VOLITANS")
+plot(try[SELECT_BGS]) 
+
+plot(data$geometry, col = data$SELECT_BGS, pch = 16, cex = 0.5, main = "Variable Plot")
+
+
+```
+
+
+
+
+
+
