@@ -26,10 +26,7 @@ bio_data_final<-bio_data_final %>% drop_na("SELECT_BGS") #579,868 observations
 bio_data_final<-bio_data_final %>% drop_na("new_TAXON") #579,8683 observations
 
 
-min_lat<-min(bio_data_final$DECSLAT)
-max_lat<-max(bio_data_final$DECSLAT)
-min_long<-min(bio_data_final$DECSLON)
-max_long<-max(bio_data_final$DECSLON)
+
 
 #for testing/debugging
 #yr=2015
@@ -59,13 +56,13 @@ for (sp in unique(bio_data_final$new_TAXON)) {
     year_data <- species_data %>% filter(YR == yr) 
     
     # Convert the dataframe to an sf object
-    year_data_sf <- st_as_sf(year_data, coords = c("DECSLAT", "DECSLON"), crs = 4269)
+    year_data_sf <- st_as_sf(year_data, coords = c( "DECSLON", "DECSLAT"), crs = 4269)
     
     # Define the raster extent (you may need to adjust the extent based on your data)
-    raster_extent <- ext(min_lat, max_lat, min_long, max_long)
+    raster_extent <- ext(-100, -80, 20, 35)
 
     # Create a raster template with the desired resolution (adjust resolution as needed)
-    raster_template <- rast(ext = raster_extent, res = 1)
+    raster_template <- rast(ext = raster_extent, res = 0.01)
     crs(raster_template) <- "EPSG:4269"
 
     # Rasterize the points for the current year
@@ -83,7 +80,18 @@ for (sp in unique(bio_data_final$new_TAXON)) {
 }
 
 
-species_raster_stacks$`RHIZOPRIONODON TERRAENOVAE`
+
+
+
+```
+
+
+```{r}
+
+
+rt<-species_raster_stacks$`RHIZOPRIONODON TERRAENOVAE`
+rt.sum<-app(rt, fun=sum, na.rm=TRUE)
+plot(rt.sum)
 
 
 ```
