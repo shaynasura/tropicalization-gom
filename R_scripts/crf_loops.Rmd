@@ -10,8 +10,9 @@ editor_options:
 ```{r }
 # Load necessary libraries
 library(dplyr)
-library(terra)
 library(sf)
+library(terra)
+library(spatstat)
 library(tidyverse)
 
 #  dataframe
@@ -54,22 +55,32 @@ for (sp in unique(bio_data_final$new_TAXON)) {
   for (yr in unique(species_data$YR)) {
     # Filter data for the current year
     year_data <- species_data %>% filter(YR == yr) 
-    
+
+    # Remove duplicate points
+    year_data <- year_data %>% distinct(DECSLON, DECSLAT)
+
     # Convert the dataframe to an sf object
-    year_data_sf <- st_as_sf(year_data, coords = c( "DECSLON", "DECSLAT"), crs = 4269)
-    
-    # Define the raster extent (you may need to adjust the extent based on your data)
-    raster_extent <- ext(-100, -80, 20, 35)
+    year_data_sf <- st_as_sf(year_data, coords = c("DECSLON", "DECSLAT"), crs = 4269)
 
-    # Create a raster template with the desired resolution (adjust resolution as needed)
-    raster_template <- rast(ext = raster_extent, res = 0.01)
-    crs(raster_template) <- "EPSG:4269"
+    # Convert sf object to a data frame for KDE
+    coords <- st_coordinates(year_data_sf)
 
-    # Rasterize the points for the current year
-    year_raster <- rasterize(year_data_sf, raster_template, field = "SELECT_BGS")
+    # Perform Kernel Density Estimation
+    kde <- density.ppp(ppp(coords[, 1], coords[, 2], window = owin(c(-100, -80), c(20, 35)))) 
+
+    # Create a raster from the KDE output
+    # Create an empty raster with specified extent and resolution
+    raster_template <- rast(ext = ext(-100, -80, 20, 35), res = 0.01)
     
-    # Add the year raster to the list of yearly rasters
-    yearly_rasters[[as.character(yr)]] <- year_raster 
+    # Rasterize the KDE results
+    kde_raster <- rast(nrows = nrow(raster_template), ncols = ncol(raster_template), 
+                       ext = ext(raster_template), crs = crs(raster_template))
+    
+    # Assign the KDE values to the raster
+    values(kde_raster) <- as.vector(kde$v)
+
+    # Store the KDE raster in the list
+    yearly_rasters[[as.character(yr)]] <- kde_raster
   }
   
   # Stack the yearly rasters into a single raster stack
@@ -78,6 +89,11 @@ for (sp in unique(bio_data_final$new_TAXON)) {
   # Add the raster stack to the list of species raster stacks
   species_raster_stacks[[sp]] <- species_raster_stack 
 }
+
+# Example of accessing the raster stack for a specific species
+rt <- species_raster_stacks$`RHIZOPRIONODON TERRAENOVAE`
+rt.sum <- app(rt, fun = sum, na.rm = TRUE)
+plot(rt.sum)
 
 
 
@@ -96,3 +112,83 @@ plot(rt.sum)
 
 ```
 
+the kde part of this bit below is broken. mismatch between kde and empty raster
+```{r kde}
+# Load necessary libraries
+library(dplyr)
+library(sf)
+library(terra)
+library(spatstat)
+library(raster)
+
+
+# Create an empty list to store raster stacks for each species
+species_raster_stacks <- list()
+
+# Loop over each species
+for (sp in unique(bio_data_final$new_TAXON)) {
+  # Filter data for the current species
+  species_data <- bio_data_final %>% filter(new_TAXON == sp) 
+  
+  # Create an empty list to store rasters for each year
+  yearly_rasters <- list()
+  
+  # Loop over each year
+  for (yr in unique(species_data$YR)) {
+    # Filter data for the current year
+    year_data <- species_data %>% filter(YR == yr) 
+
+    # Remove duplicate points
+    year_data <- year_data %>% distinct(DECSLON, DECSLAT)
+
+    # Convert the dataframe to an sf object
+    year_data_sf <- st_as_sf(year_data, coords = c("DECSLON", "DECSLAT"), crs = 4269)
+
+    # Convert sf object to a data frame for KDE
+    coords <- st_coordinates(year_data_sf)
+
+    # Perform Kernel Density Estimation
+    kde <- density.ppp(ppp(coords[, 1], coords[, 2], window = owin(c(-100, -80), c(20, 35)))) 
+
+    # Create a raster from the KDE output
+    # Create an empty raster with specified extent and resolution
+    raster_template <- rast(ext = ext(-100, -80, 20, 35), res = 0.01)
+    
+    # Rasterize the KDE results
+    kde_raster <- rast(nrows = nrow(raster_template), ncols = ncol(raster_template), 
+                       ext = ext(raster_template), crs = crs(raster_template))
+    
+    # Assign the KDE values to the raster
+    values(kde_raster) <- as.vector(kde$v)
+
+    # Store the KDE raster in the list
+    yearly_rasters[[as.character(yr)]] <- kde_raster
+  }
+  
+  # Stack the yearly rasters into a single raster stack
+  species_raster_stack <- rast(yearly_rasters)
+  
+  # Add the raster stack to the list of species raster stacks
+  species_raster_stacks[[sp]] <- species_raster_stack 
+}
+
+# Example of accessing the raster stack for a specific species
+rt <- species_raster_stacks$`RHIZOPRIONODON TERRAENOVAE`
+rt.sum <- app(rt, fun = sum, na.rm = TRUE)
+plot(rt.sum)
+
+
+
+
+
+```
+
+```{r}
+
+
+rt<-species_raster_stacks$`RHIZOPRIONODON TERRAENOVAE`
+rt.sum<-app(rt, fun=sum, na.rm=TRUE)
+plot(rt.sum)
+
+
+```
