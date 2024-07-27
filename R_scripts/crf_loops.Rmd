@@ -34,11 +34,6 @@ max_long<-max(bio_data_final$DECSLON)
 #for testing/debugging
 #yr=2015
 #sp="PTEROIS VOLITANS"
-#bio_data_final<-bio_data_final[1:50000, ] works
-#bio_data_final<-bio_data_final[50000:100000, ]  doesn't work
-#bio_data_final<-bio_data_final[100000:150000, ]   works
-#bio_data_final<-bio_data_final[100000:500000, ] works
-
 #which(is.na(bio_data_final$DECSLAT), arr.ind=TRUE)
 #which(is.na(bio_data_final$DECSLON), arr.ind=TRUE)
 #which(is.na(bio_data_final$SELECT_BGS), arr.ind=TRUE) #this returns 3,915 entries. I'm going to omit them
