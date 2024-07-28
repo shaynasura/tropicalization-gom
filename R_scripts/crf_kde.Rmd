@@ -1,0 +1,188 @@
+---
+title: "kde"
+author: "CRF"
+date: "2024-07-27"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r kde}
+
+
+# Load necessary libraries
+library(dplyr)
+library(sf)
+library(terra)
+library(spatstat)
+library(tidyverse)
+
+#  dataframe
+bio_data_clean_all <- read_csv("~/Desktop/tropicalization-gom/bio_data_clean.csv")
+species_climate_df <- read_csv("~/Desktop/tropicalization-gom/species_climate_data.csv")
+bio_data_final <- bio_data_clean_all %>%
+  rename(species_name = new_TAXON) %>%
+  left_join(species_climate_df, join_by(species_name)) %>% 
+  rename(new_TAXON = species_name) #584,783
+
+bio_data_final<-bio_data_final %>% drop_na("SELECT_BGS") #579,868 observations
+bio_data_final<-bio_data_final %>% drop_na("new_TAXON") #579,8683 observations
+#using this subset to get it to work @0.01 resolution
+
+
+
+```
+
+
+```{r kde}
+
+
+# Create an empty list to store raster stacks for each species
+species_raster_stacks <- list()
+
+# Define the raster extent (adjust based on your data)
+raster_extent <- ext(-100, -80, 20, 35)
+
+# Loop over each species
+for (sp in unique(bio_data_final$new_TAXON)) {
+  # Filter data for the current species
+  species_data <- bio_data_final %>% filter(new_TAXON == sp)
+  
+  # Create an empty list to store rasters for each year
+  yearly_rasters <- list()
+  
+  # Loop over each year
+  for (yr in unique(species_data$YR)) {
+    # Filter data for the current year
+    year_data <- species_data %>% filter(YR == yr)
+    
+    # Remove duplicate points
+    year_data <- year_data %>% distinct(DECSLON, DECSLAT, SELECT_BGS)
+    
+    # Convert the dataframe to an sf object
+    year_data_sf <- st_as_sf(year_data, coords = c("DECSLON", "DECSLAT"), crs = 4269)
+    
+    # Convert sf object to a data frame for KDE
+    coords <- st_coordinates(year_data_sf)
+    
+    # Define the raster resolution
+    res <- 0.1
+    
+    # Calculate the number of grid points required for KDE based on raster template resolution
+    grid_points <- c((ymax(raster_extent) - ymin(raster_extent)) / res, 
+                     (xmax(raster_extent) - xmin(raster_extent)) / res)
+    
+    # Perform Kernel Density Estimation with matching grid points and weights
+    kde <- density.ppp(ppp(coords[, 1], coords[, 2], marks = year_data$SELECT_BGS, 
+                           window = owin(c(xmin(raster_extent), xmax(raster_extent)), 
+                                         c(ymin(raster_extent), ymax(raster_extent)))), 
+                       dimyx = grid_points, weights = year_data$SELECT_BGS)
+    
+    # Convert KDE result to raster using terra
+    kde_raster <- rast(ext = raster_extent, res = res)
+    crs(kde_raster) <- "EPSG:4269"
+    
+    # Ensure KDE dimensions match the raster template dimensions
+    if (all(dim(kde$v) == c(nrow(kde_raster), ncol(kde_raster)))) {
+      # Assign the KDE values to the raster
+      values(kde_raster) <- as.vector(t(kde$v))  # Ensure correct order with transpose
+      # Store the KDE raster in the list if valid
+      yearly_rasters[[as.character(yr)]] <- kde_raster
+    } else {
+      warning(paste("KDE dimensions do not match raster template dimensions for year", yr))
+    }
+  }
+  
+  # Stack the yearly rasters into a single raster stack
+  if (length(yearly_rasters) > 0) {
+    species_raster_stack <- rast(yearly_rasters)
+    # Set the names of the layers to the corresponding years
+    names(species_raster_stack) <- names(yearly_rasters)
+    # Add the raster stack to the list of species raster stacks
+    species_raster_stacks[[sp]] <- species_raster_stack
+  } else {
+    warning(paste("No valid rasters for species", sp))
+  }
+}
+
+
+```
+
+
+```{r check some species data}
+
+rt<-species_raster_stacks$`RHIZOPRIONODON TERRAENOVAE`
+pt<-species_raster_stacks$`PTEROIS VOLITANS`
+
+par(mfrow=c(3,2))
+plot(rt$'1982', main="1982")
+plot(rt$'1992', main="1992")
+plot(rt$'2002', main="2002")
+plot(rt$'2012', main="2012")
+plot(rt$'2022', main="2022")
+
+par(mfrow=c(2,2))
+plot(pt$'2010', main="2010")
+plot(pt$'2014', main="2014")
+plot(pt$'2018', main="2018")
+plot(pt$'2022', main="2022")
+plot(sc)
+
+```
+
+
+```{r check some year data}
+# Load necessary libraries
+library(terra)
+
+# Specify the target year
+target_year <- "2015"
+
+# Create an empty list to store the extracted rasters for the target year
+year_2015_rasters <- list()
+
+# Loop through each species in the species raster stacks
+for (species in names(species_raster_stacks)) {
+  # Get the raster stack for the current species
+  species_stack <- species_raster_stacks[[species]]
+  
+  # Print the names of the layers for debugging
+  print(paste("Layers for species", species, ":"))
+  print(names(species_stack))
+  
+  # Check if the target year exists in the raster stack
+  if (target_year %in% names(species_stack)) {
+    # Extract the raster for the target year
+    target_year_raster <- species_stack[[target_year]]
+    
+    # Add the extracted raster to the list
+    year_2015_rasters[[species]] <- target_year_raster
+  } else {
+    warning(paste("Year", target_year, "not found in the raster stack for species", species))
+  }
+}
+
+# Print the list of extracted rasters for the year 2015
+print(year_2015_rasters)
+
+# Plot the rasters to verify (optional)
+
+
+raster_stack_2015 <- rast(year_2015_rasters)
+  
+# Sum the rasters
+summed_raster_2015 <- app(raster_stack_2015, sum, na.rm = TRUE)
+par(mfrow=c(1,1))
+plot(summed_raster_2015)
+
+
+# Load the shapefile of land masses (adjust the path to your shapefile)
+land_shapefile <- vect("~/Desktop/tropicalization-gom/2_map_data_files/tl_2023_us_internationalboundary/tl_2023_us_internationalboundary.shp")
+plot(land_shapefile)
+crs(land_shapefile) <- "EPSG:4269"
+land_raster <- rasterize(land_shapefile, summed_raster_2015, field=1)
+masked_raster_2015 <- (summed_raster_2015*land_raster)
+plot(masked_raster_2015)
+
+
+```
