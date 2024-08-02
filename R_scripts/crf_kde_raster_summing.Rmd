@@ -1,0 +1,195 @@
+---
+title: "Untitled"
+author: "CRF"
+date: "2024-08-02"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r }
+# Load required libraries
+library(dplyr)
+library(sf)
+library(terra)
+library(spatstat)
+
+# Define raster parameters
+raster_extent <- ext(-100, -80, 20, 35)  # Define the raster extent
+res <- .1  # Set the raster resolution
+crs_value <- "EPSG:4269"  # Set the coordinate reference system
+
+# Create empty list to store raster stacks for each climate zone
+species_raster_stacks <- list(tropical = list(), temperate = list(), subtropical = list())
+
+# Total number of iterations for the progress bar
+total_iterations <- length(unique(bio_data_final$YR)) * length(unique(bio_data_final$climate_zone))
+pb <- txtProgressBar(min = 0, max = total_iterations, style = 3)
+
+# Loop over each year
+iteration <- 0
+for (yr in unique(bio_data_final$YR)) {
+  
+  # Loop over each climate zone
+  for (zone in unique(bio_data_final$climate_zone)) {
+    
+    # Filter data for the current year and climate zone
+    zone_data <- bio_data_final %>% 
+      filter(YR == yr, climate_zone == zone)
+    
+    # Skip if no data for this year and zone
+    if (nrow(zone_data) == 0) {
+      iteration <- iteration + 1
+      setTxtProgressBar(pb, iteration)
+      next  
+    }
+    
+    # Create an empty list to store rasters for each species
+    species_rasters <- list()
+    
+    # Loop over each species
+    for (sp in unique(zone_data$new_TAXON)) {
+      
+      # Filter data for the current species
+      species_data <- zone_data %>% filter(new_TAXON == sp)
+      
+      # Remove duplicate points
+      species_data <- species_data %>% distinct(DECSLON, DECSLAT, SELECT_BGS)
+      
+      # Convert the dataframe to an sf object
+      species_data_sf <- st_as_sf(species_data, coords = c("DECSLON", "DECSLAT"), crs = crs_value)
+      
+      # Convert sf object to a data frame for KDE
+      coords <- st_coordinates(species_data_sf)
+      
+      # Calculate the number of grid points required for KDE
+      grid_points <- c((ymax(raster_extent) - ymin(raster_extent)) / res, 
+                       (xmax(raster_extent) - xmin(raster_extent)) / res)
+      
+      # Perform Kernel Density Estimation
+      kde <- density.ppp(ppp(coords[, 1], coords[, 2], marks = species_data$SELECT_BGS, 
+                             window = owin(c(xmin(raster_extent), xmax(raster_extent)), 
+                                           c(ymin(raster_extent), ymax(raster_extent)))), 
+                         dimyx = grid_points, weights = species_data$SELECT_BGS)
+      
+      # Convert KDE result to raster using terra
+      kde_raster <- rast(ext = raster_extent, res = res)
+      crs(kde_raster) <- crs_value
+      
+      # Ensure KDE dimensions match the raster template dimensions
+      if (all(dim(kde$v) == c(nrow(kde_raster), ncol(kde_raster)))) {
+        # Assign the KDE values to the raster
+        values(kde_raster) <- as.vector(t(kde$v))  # Ensure correct order with transpose
+        
+        # Store the KDE raster in the list
+        species_rasters[[sp]] <- kde_raster
+      }
+    }
+    
+    # Stack the species rasters into a single raster stack
+    if (length(species_rasters) > 0) {
+      species_raster_stack <- rast(species_rasters)
+      # Set the names of the layers to the corresponding species
+      names(species_raster_stack) <- names(species_rasters)
+      
+      # Add the raster stack to the list of species raster stacks for the appropriate climate zone
+      species_raster_stacks[[zone]][[as.character(yr)]] <- species_raster_stack
+    }
+    
+    # Update progress bar
+    iteration <- iteration + 1
+    setTxtProgressBar(pb, iteration)
+  }
+}
+
+# Close the progress bar
+close(pb)
+
+# At this point, species_raster_stacks contains raster stacks for each year and climate zone
+
+```
+
+```{r}
+
+
+
+# Access the raster stack for the year 2023 in the tropical climate zone
+
+tropical_species_2023 <- species_raster_stacks$tropical[["2023"]]
+subtropical_species_2023 <- species_raster_stacks$subtropical[["2023"]]
+temperate_species_2023 <- species_raster_stacks$temperate[["2023"]]
+
+
+tropical_2023_raster <- sum(tropical_species_2023)
+subtropical_2023_raster <- sum(subtropical_species_2023)
+temperate_2023_raster <- sum(temperate_species_2023)
+
+
+
+par(mfrow=c(3,1))
+plot(tropical_2023_raster, main = "Total Species Distribution in 2023 (Tropical Climate Zone)",
+       col = terrain.colors(10))  
+plot(temperate_2023_raster, main = "Total Species Distribution in 2023 (Temperate Climate Zone)",
+       col = terrain.colors(10))  
+plot(subtropical_2023_raster, main = "Total Species Distribution in 2023 (Subtropical Climate Zone)",
+       col = terrain.colors(10))  
+
+check1<-tropical_2023_raster-temperate_2023_raster
+check2<-tropical_2023_raster-subtropical_2023_raster
+check3<-temperate_2023_raster-subtropical_2023_raster
+par(mfrow=c(3,1))
+plot(check1)
+plot(check2)
+plot(check3)
+
+percent_trop<-tropical_2023_raster/((tropical_2023_raster+subtropical_2023_raster+temperate_2023_raster))
+
+# Load the shapefile of land masses (adjust the path to your shapefile)
+land_shapefile <- vect("~/Desktop/tropicalization-gom/2_map_data_files/ne_110m_ocean/ne_110m_ocean.shp")
+plot(land_shapefile)
+crs(land_shapefile) <- "EPSG:4269"
+land_raster <- rasterize(land_shapefile, percent_trop, field=1)
+percent_2023 <- (percent_trop*land_raster)
+
+plot(percent_2023)
+```
+
+eventually we will want to loop through all of this and save each year.
+
+```{r write rasters}
+
+
+# Save the raster objects without specifying format
+writeRaster(tropical_2023_raster, "tropical_2023_raster.tif", overwrite = TRUE)
+writeRaster(subtropical_2023_raster, "subtropical_2023_raster.tif", overwrite = TRUE)
+writeRaster(temperate_2023_raster, "temperate_2023_raster.tif", overwrite = TRUE)
+
+tropical_2023_raster <- rast("tropical_2023_raster.tif")
+plot(tropical_2023_raster)
+
+```
+
+
+```{r plot just the points}
+# Convert the point data to an sf object
+points_sf <- st_as_sf(bio_data_final, coords = c("DECSLON", "DECSLAT"), crs = 4269)
+
+# Check the CRS of the points
+st_crs(points_sf)
+
+# Create an empty raster with the desired extent and resolution
+raster_extent <- ext(-100, -80, 20, 35)
+raster_res <- 1
+empty_raster <- rast(ext = raster_extent, res = raster_res, crs = "EPSG:4269")
+
+# Plot the land raster
+plot(land_raster, main = "Species Points with Land Raster", xlab = "Longitude", ylab = "Latitude")
+
+# Add the points from the sf object
+points(st_coordinates(points_sf), col = "blue", pch = 20, cex = 0.5)  # Adjust color, point character, and size as needed
+
+
+
+
+```
+

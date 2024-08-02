@@ -29,6 +29,7 @@ bio_data_final<-bio_data_final %>% drop_na("SELECT_BGS") #579,868 observations
 bio_data_final<-bio_data_final %>% drop_na("new_TAXON") #579,8683 observations
 #using this subset to get it to work @0.01 resolution
 
+table(bio_data_final$climate_zone, bio_data_final$climate_zone) #subtropical (410,369), tropical (148,502), NA, temperate (4,108), deep-water (4,986), polar (2)
 
 
 ```
