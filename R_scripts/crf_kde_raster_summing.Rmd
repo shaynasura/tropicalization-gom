@@ -7,12 +7,31 @@ editor_options:
   chunk_output_type: console
 ---
 
-```{r }
-# Load required libraries
+```{r PART 1: load libraries and read in data}
 library(dplyr)
 library(sf)
 library(terra)
 library(spatstat)
+library(tidyverse)
+library(MASS)
+
+#  dataframe
+bio_data_clean_all <- read.csv("~/Desktop/tropicalization-gom/bio_data_clean.csv")
+species_climate_df <- read.csv("~/Desktop/tropicalization-gom/species_climate_data.csv")
+bio_data_final <- bio_data_clean_all %>%
+  rename(species_name = new_TAXON) %>%
+  left_join(species_climate_df, join_by(species_name)) %>% 
+  rename(new_TAXON = species_name) #584,783
+
+bio_data_final<-bio_data_final %>% drop_na("SELECT_BGS") #579,868 observations
+bio_data_final<-bio_data_final %>% drop_na("new_TAXON") #579,8683 observations
+
+table(bio_data_final$climate_zone, bio_data_final$climate_zone) #subtropical (410,369), tropical (148,502), NA, temperate (4,108), deep-water (4,986), polar (2)
+
+
+```
+
+```{r PART 2: loop through each year, each climate zone, and each species to extract points, perform KDE, and rasterize}
 
 # Define raster parameters
 raster_extent <- ext(-100, -80, 20, 35)  # Define the raster extent
@@ -105,72 +124,104 @@ for (yr in unique(bio_data_final$YR)) {
 # Close the progress bar
 close(pb)
 
-# At this point, species_raster_stacks contains raster stacks for each year and climate zone
 
 ```
 
-```{r}
+
+```{r PART 3: loop through and save each raster as a itf}
+
+# Directory to save rasters
+output_dir <- "~/Desktop/tropicalization-gom/output/rasters_zone_year"
+
+# Create directory if it doesn't exist
+if (!dir.exists(output_dir)) {
+  dir.create(output_dir, recursive = TRUE)
+}
+
+# Initialize list to store summed rasters by year
+summed_rasters_by_year <- list()
+
+# Loop through each climate zone and year to sum the rasters and save them
+for (zone in names(species_raster_stacks)) {
+  for (yr in names(species_raster_stacks[[zone]])) {
+    # Sum the rasters for the current year and climate zone
+    summed_raster <- sum(species_raster_stacks[[zone]][[yr]], na.rm = TRUE)
+    
+    # Store the summed raster in the list by year
+    if (!is.list(summed_rasters_by_year[[yr]])) {
+      summed_rasters_by_year[[yr]] <- list()
+    }
+    summed_rasters_by_year[[yr]][[zone]] <- summed_raster
+    
+    # Construct the filename
+    filename <- paste0(output_dir, "/", zone, "_", yr, "_raster.tif")
+    
+    # Save the summed raster
+    writeRaster(summed_raster, filename, overwrite = TRUE)
+  }
+}
+
+```
+
+```{r PART 4: calculate and save percent tropical}
 
 
+# Calculate and save the percent tropical raster for each year
+for (yr in names(summed_rasters_by_year)) {
+  tropical_raster <- summed_rasters_by_year[[yr]][["tropical"]]
+  subtropical_raster <- summed_rasters_by_year[[yr]][["subtropical"]]
+  temperate_raster <- summed_rasters_by_year[[yr]][["temperate"]]
+  
+  if (!is.null(tropical_raster) & !is.null(subtropical_raster) & !is.null(temperate_raster)) {
+    # Calculate the percent tropical raster
+    total_raster <- tropical_raster + subtropical_raster + temperate_raster
+    percent_trop_raster <- tropical_raster / total_raster
+    
+    # Construct the filename
+    percent_filename <- paste0(output_dir, "/percent_trop_", yr, "_raster.tif")
+    
+    # Save the percent tropical raster
+    writeRaster(percent_trop_raster, percent_filename, overwrite = TRUE)
+  }
+}
 
-# Access the raster stack for the year 2023 in the tropical climate zone
 
-tropical_species_2023 <- species_raster_stacks$tropical[["2023"]]
-subtropical_species_2023 <- species_raster_stacks$subtropical[["2023"]]
-temperate_species_2023 <- species_raster_stacks$temperate[["2023"]]
+```
 
 
-tropical_2023_raster <- sum(tropical_species_2023)
-subtropical_2023_raster <- sum(subtropical_species_2023)
-temperate_2023_raster <- sum(temperate_species_2023)
-
-
-
-par(mfrow=c(3,1))
-plot(tropical_2023_raster, main = "Total Species Distribution in 2023 (Tropical Climate Zone)",
-       col = terrain.colors(10))  
-plot(temperate_2023_raster, main = "Total Species Distribution in 2023 (Temperate Climate Zone)",
-       col = terrain.colors(10))  
-plot(subtropical_2023_raster, main = "Total Species Distribution in 2023 (Subtropical Climate Zone)",
-       col = terrain.colors(10))  
-
-check1<-tropical_2023_raster-temperate_2023_raster
-check2<-tropical_2023_raster-subtropical_2023_raster
-check3<-temperate_2023_raster-subtropical_2023_raster
-par(mfrow=c(3,1))
-plot(check1)
-plot(check2)
-plot(check3)
-
-percent_trop<-tropical_2023_raster/((tropical_2023_raster+subtropical_2023_raster+temperate_2023_raster))
-
-# Load the shapefile of land masses (adjust the path to your shapefile)
+```{r quick check}
+# Load the shapefile of land masses 
 land_shapefile <- vect("~/Desktop/tropicalization-gom/2_map_data_files/ne_110m_ocean/ne_110m_ocean.shp")
 plot(land_shapefile)
 crs(land_shapefile) <- "EPSG:4269"
-land_raster <- rasterize(land_shapefile, percent_trop, field=1)
-percent_2023 <- (percent_trop*land_raster)
 
-plot(percent_2023)
+#pull years of interest
+
+percent_trop_2023<-rast("~/Desktop/tropicalization-gom/output/rasters_zone_year/percent_trop_2023_raster.tif")
+percent_trop_1982<-rast("~/Desktop/tropicalization-gom/output/rasters_zone_year/percent_trop_1982_raster.tif")
+land_raster <- rasterize(land_shapefile, percent_trop_2023, field=1)
+percent_trop_2023 <- (percent_trop_2023*land_raster)
+percent_trop_1982 <- (percent_trop_1982*land_raster)
+
+#set up panels
+par(mfrow=c(1, 2))
+
+# Determine the common range for the scale bar
+breaks <- seq(0, max(na.omit(c(values(percent_trop_2023), values(percent_trop_1982)))), length.out = 101)
+
+# Set up a 1x2 panel layout
+par(mfrow = c(2, 1))
+
+# Plot the first raster with a common scale bar
+plot(percent_trop_1982, main = "1982", col = terrain.colors(100), breaks = breaks)
+
+# Plot the second raster with a common scale bar
+plot(percent_trop_2023, main = "2023", col = terrain.colors(100), breaks = breaks)
+
+
 ```
 
-eventually we will want to loop through all of this and save each year.
-
-```{r write rasters}
-
-
-# Save the raster objects without specifying format
-writeRaster(tropical_2023_raster, "tropical_2023_raster.tif", overwrite = TRUE)
-writeRaster(subtropical_2023_raster, "subtropical_2023_raster.tif", overwrite = TRUE)
-writeRaster(temperate_2023_raster, "temperate_2023_raster.tif", overwrite = TRUE)
-
-tropical_2023_raster <- rast("tropical_2023_raster.tif")
-plot(tropical_2023_raster)
-
-```
-
-
-```{r plot just the points}
+```{r gut check- plot just the points to examine sampling error}
 # Convert the point data to an sf object
 points_sf <- st_as_sf(bio_data_final, coords = c("DECSLON", "DECSLAT"), crs = 4269)
 
@@ -182,13 +233,21 @@ raster_extent <- ext(-100, -80, 20, 35)
 raster_res <- 1
 empty_raster <- rast(ext = raster_extent, res = raster_res, crs = "EPSG:4269")
 
+par(mfrow=c(1, 1))
+
 # Plot the land raster
 plot(land_raster, main = "Species Points with Land Raster", xlab = "Longitude", ylab = "Latitude")
 
-# Add the points from the sf object
-points(st_coordinates(points_sf), col = "blue", pch = 20, cex = 0.5)  # Adjust color, point character, and size as needed
+# Calculate the density using kde2d
+density <- kde2d(st_coordinates(points_sf)[,1], st_coordinates(points_sf)[,2], n = 100)
 
-
+# Plot filled contours
+filled.contour(density$x, density$y, density$z,
+               color.palette = terrain.colors, # Choose a color palette
+               plot.axes = {
+                   axis(1); axis(2);               # Add axes
+               },
+               main = "Filled Density Contour")  # Main title
 
 
 ```
