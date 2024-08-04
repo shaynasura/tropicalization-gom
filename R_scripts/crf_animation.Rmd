@@ -1,0 +1,91 @@
+---
+title: "crf_animation"
+author: "CRF"
+date: "2024-08-04"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r}
+
+
+# Libraries
+library(terra)
+library(magick)
+
+# Define the directory and file paths
+input_dir <- "~/Desktop/tropicalization-gom/output/rasters_zone_year/"
+land_shapefile <- "~/Desktop/tropicalization-gom/2_map_data_files/ne_110m_ocean/ne_110m_ocean.shp"  # Adjust the path as needed
+
+# Load the land shapefile and create a raster template
+land <- vect(land_shapefile)
+percent_trop_template <- rast(paste0(input_dir, "percent_trop_2023_raster.tif"))
+
+# Define years
+years <- 1982:2023
+
+#scale bar limits
+zlim <- c(0, 100)
+
+# Create a temporary directory to save images
+temp_dir <- "~/Desktop/tropicalization-gom/temp_images"
+dir.create(temp_dir, showWarnings = FALSE)  # Create the directory if it doesn't exist
+
+# Remove existing images to avoid conflicts
+file.remove(list.files(temp_dir, full.names = TRUE))
+
+# Loop through each year, process the raster, and save the image
+for (yr in years) {
+  # Construct the filename
+  percent_trop_file <- paste0(input_dir, "percent_trop_", yr, "_raster.tif")
+  
+  # Check if the file exists
+  if (file.exists(percent_trop_file)) {
+    # Load the percent trop raster
+    percent_trop_raster <- rast(percent_trop_file)
+    
+    # Rasterize the land shapefile
+    land_raster <- rasterize(land, percent_trop_template, field = 1)
+    
+    # Mask the percent trop raster with the land raster
+    percent_trop_raster <- percent_trop_raster * land_raster*100
+    
+    # Plot the raster and save the image
+    plot_filename <- file.path(temp_dir, paste0("percent_trop_", yr, ".png"))
+    png(plot_filename)
+    plot(percent_trop_raster, main = paste("Percent Tropical -", yr), 
+         col = terrain.colors(100), zlim = c(0, 1))
+    dev.off()  # Ensure the device is closed after plotting
+  } else {
+    message("File not found: ", percent_trop_file)
+  }
+}
+
+# Create the animation
+output_file <- "~/Desktop/tropicalization-gom/output/percent_trop_animation.gif"
+image_list <- list()
+
+for (yr in years) {
+  plot_filename <- file.path(temp_dir, paste0("percent_trop_", yr, ".png"))
+  if (file.exists(plot_filename)) {
+    img <- image_read(plot_filename)
+    image_list <- c(image_list, img)
+  } else {
+    message("Image not found: ", plot_filename)
+  }
+}
+
+# Combine images into an animation
+if (length(image_list) > 0) {
+  animation <- image_animate(image_join(image_list), fps = 1)
+  image_write(animation, output_file)
+} else {
+  message("No images to combine into an animation.")
+}
+
+# Clean up the temporary directory
+unlink(temp_dir, recursive = TRUE)
+
+```
+
