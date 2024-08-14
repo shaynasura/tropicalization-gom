@@ -223,10 +223,26 @@ plot(percent_trop_2023, main = "2023", col = terrain.colors(100), breaks = break
 
 ```{r gut check- plot just the points to examine sampling error}
 # Convert the point data to an sf object
-points_sf <- st_as_sf(bio_data_final, coords = c("DECSLON", "DECSLAT"), crs = 4269)
+
+points_sf <- bio_data_final %>% distinct(DECSLON, DECSLAT)
+
+points_sf <- st_as_sf(points_sf, coords = c("DECSLON", "DECSLAT"), crs = 4269)
+    
+
 
 # Check the CRS of the points
 st_crs(points_sf)
+
+#quick plot
+my_extent <- ext(-100, -80, 20, 35)
+land_vect_cropped <- crop(land_shapefile, my_extent)
+
+
+plot(land_vect_cropped, col = "lightgreen", border = "darkgreen", main = "Points and Land Vector")
+
+plot(st_geometry(points_sf), add = TRUE, pch = 19, col = rgb(1, 0, 0, 0.01))
+
+
 
 # Create an empty raster with the desired extent and resolution
 raster_extent <- ext(-100, -80, 20, 35)
@@ -236,10 +252,12 @@ empty_raster <- rast(ext = raster_extent, res = raster_res, crs = "EPSG:4269")
 par(mfrow=c(1, 1))
 
 # Plot the land raster
-plot(land_raster, main = "Species Points with Land Raster", xlab = "Longitude", ylab = "Latitude")
+land_raster_flipped <- 1 - land_raster
 
 # Calculate the density using kde2d
 density <- kde2d(st_coordinates(points_sf)[,1], st_coordinates(points_sf)[,2], n = 100)
+
+
 
 # Plot filled contours
 filled.contour(density$x, density$y, density$z,
@@ -249,6 +267,17 @@ filled.contour(density$x, density$y, density$z,
                },
                main = "Filled Density Contour")  # Main title
 
+plot(land_raster, add = TRUE, col = "white", legend = FALSE)
+
+
+
+plot(bio_data_final$YR, bio_data_final$TEMP_SSURF, 
+     main = "Scatter Plot of Random Data", 
+     xlab = "X-axis (Random Values)", 
+     ylab = "Y-axis (Random Values)", 
+     pch = 19, 
+     col = rgb(0, 0, 1, 0.5))  # Blue points with 50% transparency
+abline(bio_data_final$YR~bio_data_final$TEMP_SSURF, col = "red", lwd = 2)  # Red line with thickness 2
 
 ```
 
