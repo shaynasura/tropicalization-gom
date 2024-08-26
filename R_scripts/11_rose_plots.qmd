@@ -1,0 +1,54 @@
+---
+title: "11_rose_plots"
+format: pdf
+---
+
+
+## CODE FROM CHATGPT - NEEDS TO BE ADAPTED TO MAKE A ROSE PLOT
+
+```{r}
+
+
+# Load necessary libraries
+library(ggplot2)
+library(dplyr)
+library(scales)
+
+# Sample data (replace this with your actual data)
+set.seed(123)
+data <- data.frame(
+  compass_bearing = sample(seq(0, 360, by = 10), 100, replace = TRUE),
+  distance = runif(100, 1, 10),
+  climate_distribution = sample(c("Tropical", "Temperate", "Arctic"), 100, replace = TRUE)
+)
+
+# Create the wind rose plot
+ggplot(data, aes(x = factor(compass_bearing), y = distance, fill = climate_distribution)) +
+  geom_bar(stat = "identity", width = 1, color = "black") +
+  coord_polar(start = -pi/16) +  # Adjust start for orientation
+  scale_fill_manual(values = c("Tropical" = "coral", "Temperate" = "skyblue", "Arctic" = "lightgreen")) +
+  scale_y_continuous(expand = c(0, 0)) +
+  theme_minimal() +
+  theme(axis.title = element_blank(),
+        axis.text.x = element_text(size = 12, vjust = 0.5),
+        axis.text.y = element_blank(),
+        panel.grid = element_blank(),
+        legend.position = "right") +
+  labs(fill = "Climate Distribution") +
+  ggtitle("Wind Rose Plot with Distance and Climate Distribution")
+
+
+```
+
+
+
+Explanation:
+aes(x = factor(compass_bearing), y = distance, fill = climate_distribution): Maps your data to the compass bearing (x-axis), distance (y-axis), and the color of the petals (fill).
+geom_bar(stat = "identity", width = 1, color = "black"): Creates the bars representing the distance.
+coord_polar(start = -pi/16): Converts the plot to a circular format (polar coordinates) with an adjustment to start the plot at a specific angle.
+scale_fill_manual(values = ...): Specifies custom colors for the different climate distributions.
+theme_minimal(): Applies a clean, minimalistic theme.
+labs(fill = "Climate Distribution"): Adds a legend title.
+You can adjust the colors, axis labels, or other plot elements to fit your data and preferences.
+
+
