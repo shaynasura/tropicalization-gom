@@ -21,6 +21,9 @@ library(here) # helps with paths for files
 
 library(purrr)
 
+# for getting species distribution information from FishBase - need to double check this works...
+# library(rfishbase) # does not work for me yet
+
 library(rvest) #for web scraping
 library(xml2)
 library(stringr)
@@ -39,11 +42,23 @@ library(stringr)
 
 bio_data_clean <- read_csv(file = "data/clean_data/bio_data_clean.csv")
 
+glimpse(bio_data_clean)
 # head(bio_data_clean)
+
+length(unique(bio_data_clean$new_TAXON))   #1168 unique fish based on new_TAXON
 
 ```
 
 
+
+
+## testing out 'rfishbase' package for pulling species distribution information...doesn't work for me yet, sticking with webscraping option below
+```{r}
+
+# rfishbase::distribution(species_list(Genus = "Labroides"))
+
+
+```
 
 
 
@@ -66,7 +81,7 @@ species_df <- bio_data_clean %>%
   arrange(new_TAXON)
 
 # check dimensions
-dim(species_df)  ## returns 843 unique taxonomic names after name adjustments above
+dim(species_df)  ## returns 844 unique taxonomic names after name adjustments above
 # convert to vector format so can be used in apply / mapping below to use function on all the species names in this vector
 species_list <- species_df$new_TAXON
 # check length
@@ -212,7 +227,6 @@ for (species in species_list) {
 
 # Create csv file with species climate information
 write_csv(species_climate_df, file = "output/species_climate_data.csv")
-
 
 
 ```

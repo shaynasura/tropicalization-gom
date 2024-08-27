@@ -76,7 +76,8 @@ mass.csv.in(path = "data/seamap_trawls/")
 glimpse(BGSREC.csv)
 summary(BGSREC.csv)
 
-glimpse(NEWBIOCODESBIG.csv)
+# glimpse(NEWBIOCODESBIG.csv)
+glimpse(BIOCODES01182023.csv)
 
 
 glimpse(STAREC.csv)
@@ -126,7 +127,9 @@ taxa_names <- BIOCODES01182023.csv %>%
   rename(BIO_BGS = BIOCODE)
 
 taxa_names_slim <- taxa_names %>% 
-  select(BIO_BGS, CIU_BIOCODE, RANK, new_TAXON)
+  select(BIO_BGS, CIU_BIOCODE, RANK, new_TAXON) %>% 
+  # only keep unique/distinct rows
+  distinct()
 
 
 # # check for duplicated entries for the Biocodes, which will create extra entries when I join the scientific names to the biological data
@@ -158,7 +161,7 @@ taxa_names_slim <- taxa_names %>%
 
 # subset CRUISES
 year_data <- CRUISES.csv %>% 
-  select(CRUISEID, YR)
+  select(CRUISEID, YR, TITLE)
 
 # checking the values in the YR column to make sure there aren't any weird ones that might need to be fixed
 unique(year_data$YR) # data from 1982 - 2023
@@ -167,7 +170,7 @@ length(unique(year_data$YR)) # 42 years of data
 
 # subset STAREC
 small_starec_data <- STAREC.csv %>% 
-  select(STATIONID, CRUISEID, CRUISE_NO, DEPTH_SSTA, MO_DAY_YR, DECSLAT, DECSLON, DECELAT, DECELON, TEMP_SSURF, TEMP_BOT, TEMP_SAIR)
+  select(STATIONID, CRUISEID, CRUISE_NO, DEPTH_SSTA, MO_DAY_YR, DECSLAT, DECSLON, DECELAT, DECELON, GEARS, TEMP_SSURF, TEMP_BOT, TEMP_SAIR)
 
 
 ```
@@ -183,7 +186,7 @@ small_starec_data <- STAREC.csv %>%
 ```{r data organizing}
 
 
-# 1. filter out invertebrates and remove extra columns I don't need from BGSREC.csc
+# 1. filter out invertebrates and remove extra columns I don't need from BGSREC.csv
 bio_data <- BGSREC.csv %>%
   filter(CATEGORY == 3) %>%
   select(-CNT, -SAMPLE_BGS, -NODC_BGS, -TAXONID, -INVRECID)
@@ -266,10 +269,11 @@ bio_data <- bio_data %>%
 unique(bio_data$HAULVALUE)
 length(which(bio_data$HAULVALUE == "G"))   # 361,748 
 length(which(bio_data$HAULVALUE == "B"))   # 41
-length(which(is.na(bio_data$HAULVALUE) == TRUE))   # 221,882   # 222,994 on April 18, 2024
+length(which(is.na(bio_data$HAULVALUE) == TRUE))   # 221,882   # 222,994 on April 18, 2024  # 232,276 on August 26, 2024
 
 361748+41+221882  # sum is 583,671 which is the length of bio_data
 361748+41+222994  # sum is 584,783 which is the length of bio_data on April 18, 2024
+361748+41+232276  # sum is 594,065 which is the length of bio_data on August 26, 2024
 
 # bad_hauls <- bio_data %>% 
 #   filter(HAULVALUE != "G")
@@ -380,6 +384,13 @@ write_csv(bio_data_clean, file = "data/clean_data/bio_data_clean.csv")
 
 
 
+# DON'T DO BELOW - SUBSET DATA IN SEPARATE SCRIPTS LATER ON
+
+
+
+
+
+
 
 
 # Examine data in subsets
@@ -387,7 +398,8 @@ write_csv(bio_data_clean, file = "data/clean_data/bio_data_clean.csv")
 ## Exclude 1982 - low trawl station coverage of western GoM
 ## Exclude 2020 - low trawl station coverage in general and no sampling in summer (June/July)
 ## Exclude 2023 - not all data appears to be entered yet - mostly only from Florida so far
-- exclude 1982, 2020, 2023
+### ^still accurate as of August 26, 2024 - not all 2023 data has been entered yet.
+- exclude 1982, (2020), 2023
 
 ## There is trawl data from a variety of different months each year - June & July are consistently represented, though, along with October and November.
 - analyze only the data from 'summer' trawls (June & July) initially.
