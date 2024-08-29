@@ -3,6 +3,81 @@ title: "11_rose_plots"
 format: pdf
 ---
 
+# load packages
+```{r}
+
+library(tidyverse) # includes and loads the packages listed below
+# library(readr)
+# library(tidyr)
+# library(dplyr)
+# library(ggplot2)
+# library(lubridate)
+
+library(stringr)  # for manipulating text strings
+
+library(here) # helps with paths for files
+library(arsenal)
+
+library(purrr)
+
+library(geosphere)  # for calculating change in bearing and distances for gCOBs
+
+```
+
+
+```{r source custom functions to simplify conducting these analyses}
+#| echo: false
+
+# getwd()
+
+source("R_scripts/functions/fish_calculate_gCOB.R")
+source("R_scripts/functions/filter_gCOB_dataframes.R")
+source("R_scripts/functions/calculate_gCOB_movement.R")
+
+# source("R_scripts/functions/test_gCOBs_over_time.R")
+# source("R_scripts/functions/combine_and_modify_models.R")
+# source("R_scripts/functions/plot_lat_long_gCOB_data.R")
+
+```
+
+
+
+
+```{r load data from csv files}
+#| echo: false
+#| message: false
+
+# # import csv of clean bio data
+# bio_data_clean <- read_csv(file = "data/clean_data/bio_data_clean.csv")
+# 
+# # import csv with climate zone information for each fish species as web scraped from FishBase
+# species_climate_df <- read_csv(file = "output/species_climate_data.csv")
+
+
+# import csv files for data subsets to explore
+bio_data_clean_yr2010_2022_m101112 <- read_csv(bio_data_clean_yr2010_2022_m101112, file = "data/clean_data/bio_data_clean_yr2010_2022_m101112.csv")
+bio_data_clean_yr2010_2022_m678 <- read_csv(bio_data_clean_yr2010_2022_m678, file = "data/clean_data/bio_data_clean_yr2010_2022_m678.csv")
+bio_data_clean_yr1983_2022_m678_western <-read_csv(bio_data_clean_yr1983_2022_m678_western, file = "data/clean_data/bio_data_clean_yr1983_2022_m678_western.csv")
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 ## CODE FROM CHATGPT - NEEDS TO BE ADAPTED TO MAKE A ROSE PLOT
 
@@ -40,15 +115,5 @@ ggplot(data, aes(x = factor(compass_bearing), y = distance, fill = climate_distr
 
 ```
 
-
-
-Explanation:
-aes(x = factor(compass_bearing), y = distance, fill = climate_distribution): Maps your data to the compass bearing (x-axis), distance (y-axis), and the color of the petals (fill).
-geom_bar(stat = "identity", width = 1, color = "black"): Creates the bars representing the distance.
-coord_polar(start = -pi/16): Converts the plot to a circular format (polar coordinates) with an adjustment to start the plot at a specific angle.
-scale_fill_manual(values = ...): Specifies custom colors for the different climate distributions.
-theme_minimal(): Applies a clean, minimalistic theme.
-labs(fill = "Climate Distribution"): Adds a legend title.
-You can adjust the colors, axis labels, or other plot elements to fit your data and preferences.
 
 

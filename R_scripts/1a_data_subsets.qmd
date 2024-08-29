@@ -1,0 +1,106 @@
+---
+title: "1a_data_subsets"
+author: "Shayna A. Sura"
+format: html
+---
+
+
+
+
+
+
+```{r load data from csv file and filter for desired years and months}
+#| echo: false
+#| message: false
+
+# import csv of clean bio data
+bio_data_clean <- read_csv(file = "data/clean_data/bio_data_clean.csv")
+
+# import csv with climate zone information for each fish species as web scraped from FishBase
+species_climate_df <- read_csv(file = "output/species_climate_data.csv")
+
+
+```
+
+
+# join climate data to bio_data_clean
+
+```{r}
+
+# join climate zone information to gCOB_trends
+bio_data_clean <- bio_data_clean %>%
+  rename(species_name = new_TAXON) %>%
+  left_join(species_climate_df, join_by(species_name)) %>% 
+  rename(new_TAXON = species_name)
+
+```
+
+
+## subset data for All of Gulf of Mexico for Fall Sampling: 2010 - 2022
+```{r}
+
+
+# subset the data for the target years and months
+years_to_include <- c(2010:2022)
+months_to_include <- c(10,11,12)
+
+
+bio_data_clean_yr2010_2022_m101112 <- bio_data_clean %>% 
+  filter(YR %in% years_to_include) %>% 
+  mutate(MONTH = month(dmy(MO_DAY_YR))) %>% 
+  filter(MONTH %in% months_to_include)
+
+
+# export data subset to csv file
+write_csv(bio_data_clean_yr2010_2022_m101112, file = "data/clean_data/bio_data_clean_yr2010_2022_m101112.csv")
+
+```
+
+
+## subset data for All of Gulf of Mexico for Summer Sampling: 2010 - 2022
+```{r}
+
+# subset the data for the target years and months
+years_to_include <- c(2010:2022)
+months_to_include <- c(6,7,8)
+
+
+bio_data_clean_yr2010_2022_m678 <- bio_data_clean %>% 
+  filter(YR %in% years_to_include) %>% 
+  mutate(MONTH = month(dmy(MO_DAY_YR))) %>% 
+  filter(MONTH %in% months_to_include)
+
+
+# export data subset to csv file
+write_csv(bio_data_clean_yr2010_2022_m678, file = "data/clean_data/bio_data_clean_yr2010_2022_m678.csv")
+
+```
+
+
+########### NEED TO UPDATE THIS FILTERING BELOW TO USE THE GEOMETRIES FOR FILTERING INSTEAD OF THE DESCLON ###########
+## Or at least investigate if it makes much of a difference
+
+## subset data for western Gulf of Mexico for summer trawls (June, July, August) in years 1983 - 2022
+```{r}
+
+# subset the data for the target years and months
+years_to_include <- c(1983:2022)
+months_to_include <- c(6,7,8)
+
+
+bio_data_clean_yr1983_2022_m678_western <- bio_data_clean %>% 
+  filter(YR %in% years_to_include) %>% 
+  mutate(MONTH = month(dmy(MO_DAY_YR))) %>% 
+  filter(MONTH %in% months_to_include) %>% 
+  filter(DECSLON < -87.4)
+
+
+# max(bio_data_clean_yr1983_2022_m678_western$DECSLON)
+
+
+# export data subset to csv file
+write_csv(bio_data_clean_yr1983_2022_m678_western, file = "data/clean_data/bio_data_clean_yr1983_2022_m678_western.csv")
+
+```
+
+

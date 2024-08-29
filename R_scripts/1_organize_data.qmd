@@ -22,6 +22,8 @@ library(tidyverse) # includes and loads the packages listed below
 library(here) # helps with paths for files
 library(arsenal)
 
+library(sf) # to convert to spatial data
+
 # library(scales)
 # library(ggbeeswarm)
 
@@ -371,13 +373,42 @@ clean_data_to_update <- clean_data_to_update %>%
 
 bio_data_clean <- clean_data_to_update
 
-# export clean bio data to csv file
-write_csv(bio_data_clean, file = "data/clean_data/bio_data_clean.csv")
-
 
 ## shouldn't need to clean subsets of data because the entire bio_data should be clean now
 # clean_data_to_update <- bio_data_yr2010_2022_m678 # FILL IN HERE
 # yr2010_2022_m678_clean_bio_data <- clean_data_to_update
+
+```
+
+
+## Convert latitude and longitude into spatial data
+ - Use coordinate reference system (crs) of *NAD83*, which is good for North America. It's specifically tied to the North American tectonic plate to minimize changes to coordinate values over time.
+      - versus WGS84, which is global.
+ - *NAD83 EPSG code = 4269*
+ - WGS84 EPSG code = 4267
+ - The underlying ellipsoid model is different for NAD83 versus WGS84.
+      - NAD83 uses the GRS80 ellipsoid
+      - WGS84 uses the WGS84 ellipsoid
+- Ellipsoid parameter values
+      - *NAD83*: 
+          - semi-major axis ('a'): 6378137.0 meters
+          - flattening ('f'): 1 / 298.257222101
+      - WGS84: 
+          - semi-major axis ('a'): 6378137.0 meters
+          - flattening ('f'): 1 / 298.257223563
+
+```{r}
+
+bio_data_clean <- st_as_sf(bio_data_clean, coords=c("DECSLON", "DECSLAT"), crs=4326, remove = FALSE)
+
+```
+
+
+## Export bio_data_clean as .csv file to be used in other scripts
+```{r}
+
+# export clean bio data to csv file
+write_csv(bio_data_clean, file = "data/clean_data/bio_data_clean.csv")
 
 ```
 

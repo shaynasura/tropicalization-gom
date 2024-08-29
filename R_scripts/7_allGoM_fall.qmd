@@ -68,8 +68,12 @@ source("R_scripts/functions/test_gCOBs_over_time.R")
 source("R_scripts/functions/combine_and_modify_models.R")
 source("R_scripts/functions/filter_gCOB_dataframes.R")
 source("R_scripts/functions/plot_lat_long_gCOB_data.R")
+source("R_scripts/functions/calculate_gCOB_movement.R")
 
 ```
+
+
+
 
 ```{r load data from csv file and filter for desired years and months}
 #| echo: false
@@ -78,7 +82,7 @@ source("R_scripts/functions/plot_lat_long_gCOB_data.R")
 # import csv of clean bio data
 bio_data_clean <- read_csv(file = "data/clean_data/bio_data_clean.csv")
 
-# import csv with cimate zone information for each fish species as web scraped from FishBase
+# import csv with climate zone information for each fish species as web scraped from FishBase
 species_climate_df <- read_csv(file = "output/species_climate_data.csv")
 
 
