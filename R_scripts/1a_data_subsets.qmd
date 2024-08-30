@@ -4,11 +4,32 @@ author: "Shayna A. Sura"
 format: html
 ---
 
+# Data Organization - Part 2
+Steps:
+1. load bio_data_clean csv file and load csv file with climate distribution information for each fish species.
+2. join the climate distribution data to the bio_data_clean file.
+3. Export as new .csv file named "bio_data_clean_climate.csv"
+4. Create subsets of data based upon variable temporal and spatial coverage.
+    - entire Gulf of Mexico for Fall Sampling Trawls for 2010 - 2022.
+    - entire Gulf of Mexico for Summer Sampling Trawls for 2010 - 2022.
+    - western Gulf of Mexico for Summer Sampling Trawls for 1983 - 2022.
+
+
+## load packages
+```{r}
+
+library(tidyverse) # includes and loads the packages listed below
+# library(readr)
+# library(tidyr)
+# library(dplyr)
+# library(ggplot2)
+# library(lubridate)
+
+```
 
 
 
-
-
+## load bio_data_clean file
 ```{r load data from csv file and filter for desired years and months}
 #| echo: false
 #| message: false
@@ -19,12 +40,11 @@ bio_data_clean <- read_csv(file = "data/clean_data/bio_data_clean.csv")
 # import csv with climate zone information for each fish species as web scraped from FishBase
 species_climate_df <- read_csv(file = "output/species_climate_data.csv")
 
-
 ```
 
 
-# join climate data to bio_data_clean
 
+## join climate data to bio_data_clean
 ```{r}
 
 # join climate zone information to gCOB_trends
@@ -34,6 +54,17 @@ bio_data_clean <- bio_data_clean %>%
   rename(new_TAXON = species_name)
 
 ```
+
+
+
+## export as new .csv file
+```{r}
+
+# export to csv file
+write_csv(bio_data_clean, file = "data/clean_data/bio_data_clean_climate.csv")
+
+```
+
 
 
 ## subset data for All of Gulf of Mexico for Fall Sampling: 2010 - 2022
@@ -50,10 +81,11 @@ bio_data_clean_yr2010_2022_m101112 <- bio_data_clean %>%
   mutate(MONTH = month(dmy(MO_DAY_YR))) %>% 
   filter(MONTH %in% months_to_include)
 
+```
 
+```{r}
 # export data subset to csv file
 write_csv(bio_data_clean_yr2010_2022_m101112, file = "data/clean_data/bio_data_clean_yr2010_2022_m101112.csv")
-
 ```
 
 
@@ -70,11 +102,13 @@ bio_data_clean_yr2010_2022_m678 <- bio_data_clean %>%
   mutate(MONTH = month(dmy(MO_DAY_YR))) %>% 
   filter(MONTH %in% months_to_include)
 
+```
 
+```{r}
 # export data subset to csv file
 write_csv(bio_data_clean_yr2010_2022_m678, file = "data/clean_data/bio_data_clean_yr2010_2022_m678.csv")
-
 ```
+
 
 
 ########### NEED TO UPDATE THIS FILTERING BELOW TO USE THE GEOMETRIES FOR FILTERING INSTEAD OF THE DESCLON ###########
@@ -97,7 +131,9 @@ bio_data_clean_yr1983_2022_m678_western <- bio_data_clean %>%
 
 # max(bio_data_clean_yr1983_2022_m678_western$DECSLON)
 
+```
 
+```{r}
 # export data subset to csv file
 write_csv(bio_data_clean_yr1983_2022_m678_western, file = "data/clean_data/bio_data_clean_yr1983_2022_m678_western.csv")
 
