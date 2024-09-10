@@ -1,0 +1,53 @@
+---
+title: "AFS_stuff_01"
+author: "Shayna A. Sura"
+format: html
+---
+
+
+
+```{r}
+
+yellowtail <- bio_data_clean_yr1983_2022_m678_western %>% 
+  filter(new_TAXON == "OCYURUS CHRYSURUS")
+
+lane_snapper <- bio_data_clean_yr1983_2022_m678_western %>% 
+  filter(new_TAXON == "LUTJANUS SYNAGRIS")
+
+
+dolphinfish <- bio_data_clean_yr1983_2022_m678_western %>% 
+  filter(new_TAXON == "CORYPHAENA HIPPURUS")
+
+
+yellowtail_all <- bio_data_clean %>% 
+  filter(new_TAXON == "OCYURUS CHRYSURUS")
+
+lionfish <- bio_data_clean_yr1983_2022_m678_western %>% 
+  filter(new_TAXON == "PTEROIS VOLITANS")
+
+lionfish_genus <- bio_data_clean_yr1983_2022_m678_western %>% 
+  filter(GENUS_BGS == "PTEROIS")
+
+
+
+lionfish_genus_total <- bio_data_clean %>% 
+  filter(GENUS_BGS == "PTEROIS")
+
+
+lionfish_genus_v3 <- bio_data_clean_yr2010_2022_m678 %>% 
+  filter(GENUS_BGS == "PTEROIS")
+
+```
+
+
+
+## lane snapper example
+```{r}
+
+lane_snapper <- bio_data_clean_yr1983_2022_m678_western %>% 
+  filter(new_TAXON == "LUTJANUS SYNAGRIS")
+
+lane_snapper_gCOBs <- as.data.frame(gCOBs_yr1983_2022_m678_western["LUTJANUS SYNAGRIS_gCOB"])
+
+```
+

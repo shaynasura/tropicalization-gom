@@ -31,7 +31,7 @@ library(geosphere)  # for calculating change in bearing and distances for gCOBs
 
 ```
 
-
+# source R scripts for functions
 ```{r source custom functions to simplify conducting these analyses}
 #| echo: false
 
@@ -40,6 +40,7 @@ library(geosphere)  # for calculating change in bearing and distances for gCOBs
 source("R_scripts/functions/fish_calculate_gCOB.R")
 source("R_scripts/functions/filter_gCOB_dataframes.R")
 source("R_scripts/functions/calculate_gCOB_movement.R")
+source("R_scripts/functions/calculate_gCOB_annual_movement.R")
 
 # source("R_scripts/functions/test_gCOBs_over_time.R")
 # source("R_scripts/functions/combine_and_modify_models.R")
@@ -49,27 +50,69 @@ source("R_scripts/functions/calculate_gCOB_movement.R")
 
 
 
-
+# load data subsets from .csv files
 ```{r load data from csv files}
 #| echo: false
 #| message: false
 
 # # import csv of clean bio data
 # bio_data_clean <- read_csv(file = "data/clean_data/bio_data_clean.csv")
-# 
-# # import csv with climate zone information for each fish species as web scraped from FishBase
-# species_climate_df <- read_csv(file = "output/species_climate_data.csv")
+
+
+
+# import csv with climate zone information for each fish species as web scraped from FishBase
+species_climate_df <- read_csv(file = "output/species_climate_data.csv")
 
 
 # import csv files for data subsets to explore
-bio_data_clean_yr2010_2022_m101112 <- read_csv(bio_data_clean_yr2010_2022_m101112, file = "data/clean_data/bio_data_clean_yr2010_2022_m101112.csv")
-bio_data_clean_yr2010_2022_m678 <- read_csv(bio_data_clean_yr2010_2022_m678, file = "data/clean_data/bio_data_clean_yr2010_2022_m678.csv")
-bio_data_clean_yr1983_2022_m678_western <-read_csv(bio_data_clean_yr1983_2022_m678_western, file = "data/clean_data/bio_data_clean_yr1983_2022_m678_western.csv")
+bio_data_clean_yr2010_2022_m101112 <- read_csv(file = "data/clean_data/bio_data_clean_yr2010_2022_m101112.csv")
+bio_data_clean_yr2010_2022_m678 <- read_csv(file = "data/clean_data/bio_data_clean_yr2010_2022_m678.csv")
+bio_data_clean_yr1983_2022_m678_western <-read_csv(file = "data/clean_data/bio_data_clean_yr1983_2022_m678_western.csv")
 
 ```
 
 
+# IF USING DATA FROM .CSV FILES - MUST REDO GEOMETRIES
+
+## Convert latitude and longitude into spatial data
+ - Use coordinate reference system (crs) of *NAD83*, which is good for North America. It's specifically tied to the North American tectonic plate to minimize changes to coordinate values over time.
+      - versus WGS84, which is global.
+ - *NAD83 EPSG code = 4269*
+ - WGS84 EPSG code = 4326
+ - The underlying ellipsoid model is different for NAD83 versus WGS84.
+      - NAD83 uses the GRS80 ellipsoid
+      - WGS84 uses the WGS84 ellipsoid
+- Ellipsoid parameter values
+      - *NAD83*: 
+          - semi-major axis ('a'): 6378137.0 meters
+          - flattening ('f'): 1 / 298.257222101
+      - WGS84: 
+          - semi-major axis ('a'): 6378137.0 meters
+          - flattening ('f'): 1 / 298.257223563
+
+```{r}
+
+# bio_data_clean <- st_as_sf(bio_data_clean, coords=c("DECSLON", "DECSLAT"), crs=4269, remove = FALSE)
+
+
+bio_data_clean_yr2010_2022_m101112 <- st_as_sf(bio_data_clean_yr2010_2022_m101112, coords=c("DECSLON", "DECSLAT"), crs=4269, remove = FALSE)
+bio_data_clean_yr2010_2022_m678 <- st_as_sf(bio_data_clean_yr2010_2022_m678, coords=c("DECSLON", "DECSLAT"), crs=4269, remove = FALSE)
+bio_data_clean_yr1983_2022_m678_western <- st_as_sf(bio_data_clean_yr1983_2022_m678_western, coords=c("DECSLON", "DECSLAT"), crs=4269, remove = FALSE)
+
+```
+
+
+
+
+
+
 ### entire GoM - Fall Sampling - 2010 - 2022
+
+
+```{r}
+
+```
+
 
 ### entire GoM - Summer Sampling - 2010 - 2022
 
@@ -78,16 +121,16 @@ bio_data_clean_yr1983_2022_m678_western <-read_csv(bio_data_clean_yr1983_2022_m6
 ```{r}
 
 
-## species list for 2010 - 2022 fall months (10,11,12) data only
+## species list for 1983 - 2022 summer months (6,7,8) data only
 species_df_yr1983_2022_m678_western <- bio_data_clean_yr1983_2022_m678_western %>% 
   select(new_TAXON, RANK) %>% 
-  # filter(RANK == "SPECIES") %>% 
+  filter(RANK == "SPECIES") %>%
   distinct(new_TAXON, .keep_all = TRUE) %>% 
   arrange(new_TAXON)
 
-# dim(species_df_yr2010_2022_m101112) # 500 unique taxonomic names
+# dim(species_vec_yr1983_2022_m678_western) # 513 unique species (649 unique taxonomic names)
 species_vec_yr1983_2022_m678_western <- species_df_yr1983_2022_m678_western$new_TAXON
-num_species <- length(species_vec_yr1983_2022_m678_western) # 500 unique taxonomic names
+num_species <- length(species_vec_yr1983_2022_m678_western) # 513 unique species (649 unique taxonomic names)
 
 
 
@@ -120,6 +163,13 @@ gCOBs_data <- get("gCOBs_yr1983_2022_m678_western", envir = .GlobalEnv)
 movement_results <- calculate_all_gCOB_movements(gCOBs_data)
 
 
+# Step 3 part 2 - calculate change in gCOBs from year to year (bearing and distance) for each species
+
+gCOBs_data <- get("gCOBs_all_data", envir = .GlobalEnv)
+annual_movement_results <- calculate_annual_gCOB_movements(gCOBs_data)
+
+
+
 ```
 
 ###### make wind rose plots
@@ -127,7 +177,10 @@ movement_results <- calculate_all_gCOB_movements(gCOBs_data)
 ```{r}
 
 # Bin the bearing values and aggregate data
-binned_climate_gCOBs <- climate_gCOB_movements %>% 
+binned_climate_gCOBs <- movement_results %>%
+  rename(species_name = species) %>%
+  left_join(species_climate_df, join_by(species_name)) %>% 
+  rename(species = species_name) %>% 
   mutate(bearing_bins = cut(bearing, breaks = seq(0, 360, length.out = 37), include.lowest = TRUE)) %>% 
   group_by(climate_zone, bearing_bins) %>% 
   summarize(num_species = n(), .groups = 'drop') %>% 
@@ -175,11 +228,159 @@ ggplot(data = binned_climate_gCOBs, aes(x = bearing_bins, y = num_species,
 ```
 
 
+## wind rose plots showing averages
+
+```{r}
+
+
+# # Summarize gCOB data by species: average bearing, distance, and retain sample size, earliest, and latest year
+# summarized_gCOBs <- annual_movement_results %>%
+#   group_by(species) %>%
+#   summarize(
+#     avg_bearing = mean(bearing, na.rm = TRUE),
+#     avg_distance = mean(distance, na.rm = TRUE),
+#     sample_size = n(),
+#     earliest_year = min(as.numeric(substring(year_pair, 1, 4)), na.rm = TRUE),
+#     latest_year = max(as.numeric(substring(year_pair, 6, 9)), na.rm = TRUE)
+#   ) %>%
+#   ungroup()
+
+
+# Function to calculate standard error
+std_error <- function(x) {
+  sd(x, na.rm = TRUE) / sqrt(sum(!is.na(x)))
+}
+
+# Summarize gCOB data by species: calculate mean, SD, and SE for bearing and distance
+summarized_gCOBs <- annual_movement_results %>%
+  group_by(species) %>%
+  summarize(
+    avg_bearing = mean(bearing, na.rm = TRUE),
+    sd_bearing = sd(bearing, na.rm = TRUE),  # Standard deviation of bearing
+    se_bearing = std_error(bearing),  # Standard error of bearing
+    avg_distance = mean(distance, na.rm = TRUE),
+    sd_distance = sd(distance, na.rm = TRUE),  # Standard deviation of distance
+    se_distance = std_error(distance),  # Standard error of distance
+    sample_size = n(),
+    earliest_year = min(as.numeric(substring(year_pair, 1, 4)), na.rm = TRUE),
+    latest_year = max(as.numeric(substring(year_pair, 6, 9)), na.rm = TRUE)
+  ) %>%
+  ungroup()
 
 
 
+# Join with climate zone data
+binned_climate_gCOBs <- summarized_gCOBs %>%
+  rename(species_name = species) %>%
+  left_join(species_climate_df, join_by(species_name)) %>% 
+  rename(species = species_name) %>%
+  # Bin the average bearing into 36 bins
+  mutate(bearing_bins = cut(avg_bearing, breaks = seq(0, 360, length.out = 37), include.lowest = TRUE)) %>%
+  group_by(climate_zone, bearing_bins) %>%
+  summarize(
+    num_species = n(),
+    avg_distance = mean(avg_distance, na.rm = TRUE),
+    .groups = 'drop'
+  ) %>%
+  ungroup()
+
+# Extract labels for bins based on their midpoints
+bin_labels <- seq(0, 360, by = 10) # Midpoints of 36 bins (0-10, 10-20, ..., 350-360)
+
+# Labels for key angles (0, 90, 180, 270)
+less_bin_labels <- c("0", rep("",8), "90", rep("",8), "180", rep("",8), "270", rep("",8))
+
+# Ensure the correct order of bearing bins
+binned_climate_gCOBs <- binned_climate_gCOBs %>%
+  mutate(bearing_bins = factor(bearing_bins,
+                               levels = levels(bearing_bins),
+                               labels = bin_labels[1:36]))
+
+# Create the wind rose plot
+ggplot(data = binned_climate_gCOBs, aes(x = bearing_bins, y = num_species,
+                                        fill = climate_zone,
+                                        group = climate_zone)) +
+  geom_bar(stat = "identity", width = 1, color = "black") +
+  coord_polar(theta = "x", start = -pi/32, direction = 1) +   # Adjust start for correct orientation (due north at 12 o'clock)
+  scale_fill_manual(values = c("tropical" = "coral", "temperate" = "skyblue", "subtropical" = "lightgreen", "deep-water" = "navy")) +
+  scale_y_continuous(expand = c(0, 0)) +
+  scale_x_discrete(drop = FALSE,
+                   labels = less_bin_labels,    # Less labels for 0, 90, 180, 270 degrees
+                   expand = c(0,0.5)) +  
+  geom_text(aes(label = num_species), position = position_stack(vjust = 0.9), size = 3) +  # Add labels to petals
+  theme_minimal() +  # Apply a minimal theme for a clean look
+  theme(axis.title = element_blank(),
+        axis.text.x = element_text(size = 12, vjust = 0.5),
+        axis.text.y = element_blank(),
+        panel.grid = element_blank(),
+        legend.position = "right") +  # Position the legend to the right
+  labs(fill = "Climate Distribution") +
+  ggtitle("Wind Rose Plot with Averaged gCOBs and Climate Distribution") +
+  facet_wrap(~climate_zone, scales = "free_y")  # Facet by climate zone with free y-scales
+
+```
 
 
+# wind rose plot for just tropical fish species - showing averages and error bars
+```{r}
+
+# Filter summarized data for only tropical species
+tropical_gCOBs <- summarized_gCOBs %>%
+  rename(species_name = species) %>%
+  left_join(species_climate_df, join_by(species_name)) %>% 
+  rename(species = species_name) %>%
+  filter(climate_zone == "tropical") %>%
+  drop_na(avg_bearing, se_bearing)  # Ensure no missing values in avg_bearing or se_bearing
+
+
+
+# Create the bar plot for tropical species
+ggplot(tropical_gCOBs, aes(x = species, y = avg_bearing)) +
+  geom_bar(stat = "identity", width = 1, fill = "coral", color = "black") +
+  geom_errorbar(aes(ymin = avg_bearing - se_bearing, ymax = avg_bearing + se_bearing), width = 0.2) +  # Error bars
+  # coord_polar(theta = "y", start = 0) +  # Polar plot to represent wind rose
+  scale_y_continuous(limits = c(0, 360), expand = c(0, 0)) +  # Limit bearing from 0 to 360 degrees
+  theme_minimal() +  # Minimal theme for a clean look
+  theme(
+    axis.title = element_blank(),  # No axis titles
+    axis.text.x = element_text(size = 10, vjust = 0.5, angle = 90),
+    # axis.text.y = element_blank(),  # Remove y-axis labels
+    panel.grid = element_blank()  # Remove grid lines for clarity
+  ) +
+  labs(title = "Wind Rose of Tropical Fish Species", y = "Average Bearing (degrees)") +
+  ggtitle("Wind Rose Plot: Tropical Fish Species Bearing with Error Bars")
+
+
+
+```
+
+
+
+```{r}
+
+# Create the wind rose plot
+ggplot(tropical_gCOBs, aes(x = avg_bearing, y = avg_distance, fill = species)) +
+  geom_bar(stat = "identity", width = 10, color = "black") +  # Bar width represents bearing intervals
+  geom_errorbar(aes(x = avg_bearing, ymin = avg_distance - se_distance, ymax = avg_distance + se_distance), 
+                width = 0.2, color = "red") +  # Error bars for distance
+  coord_polar(theta = "x", start = -pi/2, direction = 1) +  # Polar plot to represent wind rose
+  scale_x_continuous(breaks = seq(0, 360, by = 30),  # Bearings at every 30 degrees
+                     limits = c(0, 360), 
+                     expand = c(0, 0)) +
+  scale_y_continuous(expand = c(0, 0)) +  # Adjust y-axis to start at 0
+  # scale_fill_manual(values = "coral") +  # Single color for tropical species
+  theme_minimal() +  # Clean theme
+  theme(
+    axis.title.y = element_blank(),
+    axis.text.y = element_blank(),  # Remove radial axis labels
+    panel.grid = element_blank(),   # Remove grid lines
+    legend.position = "none"        # No need for a legend if plotting one species type
+  ) +
+  labs(title = "Wind Rose Plot: Tropical Fish Species", x = "Bearing (degrees)", y = "Distance") +
+  ggtitle("Wind Rose Plot: Average Bearing and Distance for Tropical Fish Species")
+
+
+```
 
 
 

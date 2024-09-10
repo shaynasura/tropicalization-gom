@@ -1,0 +1,1194 @@
+---
+title: "Analysis of SEAMAP data for the entire GoM for the years 2010 - 2022 and fall sampling months of October, November, and December."
+author: "Shayna A. Sura"
+format: html
+---
+
+# Tropicalization of Gulf of Mexico Fish Communities
+
+## Analysis of SEAMAP Trawl Data
+
+### Data Subset: all of GoM stations for fall trawls (October, November, December) in years 2010 - 2022
+
+```{r code to render to pdf format}
+#| echo: false
+#| eval: false
+
+quarto::quarto_render(input = "R_scripts/7_AFS_allGoM_fall.qmd", output_format = "pdf")
+
+```
+
+
+
+```{r load packages}
+#| echo: false
+#| message: false
+#| warning: false
+
+library(tidyverse) # includes and loads the packages listed below
+# library(readr)
+# library(tidyr)
+# library(dplyr)
+# library(ggplot2)
+# library(lubridate)
+
+library(stringr)  # for manipulating text strings
+
+library(here) # helps with paths for files
+library(arsenal)
+
+library(purrr)
+
+library(broom) # for creating tibbles of model output information
+
+library(knitr) # for formatting tables
+library(kableExtra) # for formatting tables
+
+# libraries for spatial data & animating it...
+library(maps)
+library(ggmap)
+library(gganimate)
+library(gifski) # for gif output
+library(av) # for video output
+library(png)
+library(tools)
+
+library(sf)
+library(geosphere)  # for calculating change in bearing and distances for gCOBs
+
+
+# for maps with polygons for countries and states
+library(rnaturalearth)
+library(rnaturalearthdata)
+
+# library(scales)
+# library(ggbeeswarm)
+
+```
+
+```{r source custom functions to simplify conducting these analyses}
+#| echo: false
+
+# getwd()
+
+
+source("R_scripts/functions/fish_calculate_gCOB.R")
+source("R_scripts/functions/filter_gCOB_dataframes.R")
+source("R_scripts/functions/calculate_gCOB_movement.R")
+source("R_scripts/functions/calculate_gCOB_annual_movement.R")
+source("R_scripts/functions/animate_fish_species_map.R")
+
+# source("R_scripts/functions/test_gCOBs_over_time.R")
+# source("R_scripts/functions/combine_and_modify_models.R")
+# source("R_scripts/functions/plot_lat_long_gCOB_data.R")
+
+
+```
+
+
+
+
+```{r load data from csv file and filter for desired years and months}
+#| echo: false
+#| message: false
+
+# import csv of clean bio data
+bio_data_clean <- read_csv(file = "data/clean_data/bio_data_clean.csv")
+
+# import csv with climate zone information for each fish species as web scraped from FishBase
+species_climate_df <- read_csv(file = "output/species_climate_data.csv")
+
+
+# subset the data for the target years and months
+years_to_include <- c(2010:2022)
+months_to_include <- c(10,11,12)
+
+
+bio_data_clean_yr2010_2022_m101112 <- bio_data_clean %>% 
+  filter(YR %in% years_to_include) %>% 
+  mutate(MONTH = month(dmy(MO_DAY_YR))) %>% 
+  filter(MONTH %in% months_to_include)
+
+
+# export data subset to csv file
+write_csv(bio_data_clean_yr2010_2022_m101112, file = "data/clean_data/bio_data_clean_yr2010_2022_m101112.csv")
+
+```
+
+
+
+# IF USING DATA FROM .CSV FILES - MUST REDO GEOMETRIES
+
+## Convert latitude and longitude into spatial data
+ - Use coordinate reference system (crs) of *NAD83*, which is good for North America. It's specifically tied to the North American tectonic plate to minimize changes to coordinate values over time.
+      - versus WGS84, which is global.
+ - *NAD83 EPSG code = 4269*
+ - WGS84 EPSG code = 4326
+ - The underlying ellipsoid model is different for NAD83 versus WGS84.
+      - NAD83 uses the GRS80 ellipsoid
+      - WGS84 uses the WGS84 ellipsoid
+- Ellipsoid parameter values
+      - *NAD83*: 
+          - semi-major axis ('a'): 6378137.0 meters
+          - flattening ('f'): 1 / 298.257222101
+      - WGS84: 
+          - semi-major axis ('a'): 6378137.0 meters
+          - flattening ('f'): 1 / 298.257223563
+
+```{r}
+
+# bio_data_clean <- st_as_sf(bio_data_clean, coords=c("DECSLON", "DECSLAT"), crs=4269, remove = FALSE)
+
+bio_data_clean_yr2010_2022_m101112 <- st_as_sf(bio_data_clean_yr2010_2022_m101112, coords=c("DECSLON", "DECSLAT"), crs=4269, remove = FALSE)
+
+```
+
+
+
+
+
+
+```{r obtain GoM map}
+#| echo: false
+#| message: false
+
+
+# Get world polygons (already in sf format)
+world_base_map_sf <- ne_countries(scale = "medium", returnclass = "sf")
+
+# Get US state polygons (already in sf format)
+usa_state_borders_sf <- ne_states(country = "United States of America", returnclass = "sf")
+
+# Check the CRS (default is 4326)
+st_crs(world_base_map_sf)  # Should output EPSG:4326
+st_crs(usa_state_borders_sf)  # Should output EPSG:4326
+
+# Transform the CRS to 4269 (if needed)
+world_base_map_sf <- st_transform(world_base_map_sf, 4269)
+usa_state_borders_sf <- st_transform(usa_state_borders_sf, 4269)
+
+
+# Plot the base map
+base_map <- ggplot() +
+  geom_sf(data = world_base_map_sf, color = "black", fill = "white") +
+  geom_sf(data = usa_state_borders_sf, color = "black", fill = "white") +
+  coord_sf(xlim = c(-97.7, -79.9), ylim = c(24, 31), crs = st_crs(4269)) +
+  theme(panel.background = element_rect(fill = c("#CFEFFF")),
+        panel.border = element_rect(fill = NA, color = "black")) +
+  labs(x = "Longitude", y = "Latitude")
+
+#plot base_map
+base_map
+
+# # Add point geometries to the base map
+# map_with_points <- base_map +
+#   geom_sf(data = bio_data_clean_yr1983_2022_m678_western, color = "red", size = 1.5)
+# 
+# # Plot the map with points
+# map_with_points
+
+
+```
+
+
+
+
+
+
+```{r}
+
+## species list for 2010 - 2022 fall months (10,11,12) data only
+species_df_yr2010_2022_m101112 <- bio_data_clean_yr2010_2022_m101112 %>% 
+  select(new_TAXON, RANK) %>% 
+  filter(RANK == "SPECIES") %>% 
+  distinct(new_TAXON, .keep_all = TRUE) %>% 
+  arrange(new_TAXON)
+
+
+# dim(species_df_yr2010_2022_m101112) # 500 unique taxonomic names
+species_vec_yr2010_2022_m101112 <- species_df_yr2010_2022_m101112$new_TAXON
+
+```
+
+
+```{r}
+
+# Step 1 - use fish_calculate_gCOB function
+# Applying the gCOB calculate function to each unique species for the dataset only containing 2010 - 2022 data
+# create an empty list to store cg dataframe
+gCOBs_yr2010_2022_m101112 <- list()
+
+# Apply the fish_calculate_gCOB function to each unique species and combine results into a list
+result_list_yr2010_2022_m101112 <- purrr::map(species_vec_yr2010_2022_m101112, ~fish_calculate_gCOB(data = bio_data_clean_yr2010_2022_m101112,
+                                                                                                    output_name = "gCOBs_yr2010_2022_m101112",
+                                                                                                    taxonomic_column = "new_TAXON",
+                                                                                                    common_name_column = "new_TAXON",
+                                                                                                    species_name = .))
+
+
+
+# Step 2 - filter to only include fish species with 3+ gCOB observations
+# Filter the list of data frames
+gCOBs_yr2010_2022_m101112 <- filter_gCOB_dataframes(gCOBs_yr2010_2022_m101112, min_years = 3)
+
+# get updated list of fish species names
+species_vec_yr2010_2022_m101112 <- gsub("_gCOB", "", names(gCOBs_yr2010_2022_m101112))
+
+# get number of fish species in filtered dataset
+filtered_num_species <- length(species_vec_yr2010_2022_m101112)  #347 species with at least 3 years of data
+
+
+
+# Step 3 - calculate change in gCOBs over time in terms of bearing and distance
+
+#initiate empty list
+movement_results <- list()
+
+gCOBs_data <- get("gCOBs_yr2010_2022_m101112", envir = .GlobalEnv)
+movement_results <- calculate_all_gCOB_movements(gCOBs_data)
+
+
+# Step 3 part 2 - calculate change in gCOBs from year to year (bearing and distance) for each species
+
+gCOBs_data <- get("gCOBs_yr2010_2022_m101112", envir = .GlobalEnv)
+annual_movement_results <- calculate_annual_gCOB_movements(gCOBs_data)
+
+```
+
+
+## show gCOBs for a subset of species as examples
+
+```{r}
+
+lane_snapper_data <- bio_data_clean_yr2010_2022_m101112 %>% 
+  filter(new_TAXON == "LUTJANUS SYNAGRIS") %>% 
+  mutate(common_name = "Lane snapper")
+
+lane_snapper_gCOBs <- as.data.frame(gCOBs_yr2010_2022_m101112["LUTJANUS SYNAGRIS_gCOB"])
+lane_snapper_gCOBs <- lane_snapper_gCOBs %>% 
+  rename(year = LUTJANUS.SYNAGRIS_gCOB.year,
+         latitude = LUTJANUS.SYNAGRIS_gCOB.latitude,
+         longitude = LUTJANUS.SYNAGRIS_gCOB.longitude)
+
+
+lane_snapper_annual_movements <- annual_movement_results %>% 
+  filter(species == "LUTJANUS SYNAGRIS")
+
+
+
+
+# ## map of movement of gCOBs - NOT WORKING YET
+# # sequence of labels that are not every 10 degrees
+# less_bin_labels <- c("0", rep("",8), "90", rep("",8), "180", rep("",8), "270", rep("",8))
+# 
+# ggplot(data = lane_snapper_annual_movements, aes(x = bearing, y = distance)) +
+#   geom_bar(stat = "identity", width = 1, color = "black") +
+#   coord_polar(theta = "x", start = -pi/32, direction = 1) +   # Adjust start for correct orientation (due north at 12 o'clock)
+#   scale_y_continuous(expand = c(0, 0)) +
+#   # scale_x_continuous(limits = c(0,360),
+#   #                  # drop = FALSE,
+#   #                  # labels = less_bin_labels,    # less labels
+#   #                  expand = c(0,0.5)
+#   #                  ) +
+#   ggtitle("Lane Snapper\nWind Rose Plot with Distance")
+  
+
+```
+
+
+# animated map of lane snapper data
+```{r}
+
+# ## map of raw data points
+# lane_snapper_map <- ggplot() +
+#   geom_sf(data = world_base_map_sf, color = "black", fill = "white") +
+#   geom_sf(data = usa_state_borders_sf, color = "black", fill = "white") +
+#   geom_sf(data = lane_snapper_data, 
+#           aes(geometry = geometry), size = 3) +
+#   coord_sf(xlim = c(-97.7, -79.9), ylim = c(24, 31), crs = st_crs(4269)) +
+#   theme(panel.background = element_rect(fill = c("#CFEFFF")),
+#         panel.border = element_rect(fill = NA, color = "black")) +
+#   labs(x = "Longitude", y = "Latitude")
+
+
+## animated map of lane snapper SEAMAP data
+lane_snapper_function_animation <- fish_species_animation(
+  data = lane_snapper_data,
+  taxonomic_column = "new_TAXON",
+  common_name_column = "common_name",
+  species_name = "LUTJANUS SYNAGRIS",
+  low_color = "#FADFE4",
+  high_color = "#DB1133"
+)
+
+lane_snapper_function_animation
+
+anim_save("plots/lane_snapper_map1.gif")
+
+
+```
+
+
+## map of lane snapper annual gCOBs
+
+```{r}
+
+## map of gCOBs
+lane_snapper_gCOBs_map <- base_map +
+                            geom_point(data = lane_snapper_gCOBs, aes(x = longitude, y = latitude, fill = year),
+                                       size = 5,
+                                       stroke = 0.7,
+                                       shape = 21,
+                                       color = "black")  +
+                            scale_fill_viridis_c(alpha = 0.7)
+
+lane_snapper_gCOBs_map
+
+
+# Save the combined plot
+ggsave("AFS_figures/lane_snapper_gCOBs_map.png", lane_snapper_gCOBs_map, height = 6, width = 8)
+
+
+# getwd()
+
+
+# ggplot(lane_snapper_gCOBs, aes(longitude, latitude)) +
+#   geom_point(aes(colour = year),
+#                  size = 5
+#              )
+# 
+# ggplot(lane_snapper_gCOBs, aes(year, longitude)) +
+#   geom_point() +
+#   geom_smooth(method = lm,
+#               level = 0.95,
+#               col = "purple",
+#               linewidth = 2)
+# 
+# ggplot(lane_snapper_gCOBs, aes(year, latitude)) +
+#   geom_point() +
+#   geom_smooth(method = lm,
+#               level = 0.95,
+#               col = "purple",
+#               linewidth = 2)
+
+```
+
+
+# plot of lane snapper bearing and distance changes in gCOBs over time
+```{r}
+
+lane_snapper_annual_movements
+
+ls_avg_bearing = mean(lane_snapper_annual_movements$bearing)
+ls_SD_bearing = sd(lane_snapper_annual_movements$bearing)
+
+ls_avg_bearing
+ls_SD_bearing
+
+# Calculate mean, SD, and SE
+summary_stats <- lane_snapper_annual_movements %>%
+  summarise(
+    mean_bearing = mean(bearing, na.rm = TRUE),
+    sd_bearing = sd(bearing, na.rm = TRUE),
+    se_bearing = sd_bearing / sqrt(n())
+  ) %>% 
+  mutate(num_species = c(1))
+
+
+lane_snapper_annual_movements_fig1 <-
+  ggplot(data = lane_snapper_annual_movements, aes(x = year_pair, y = bearing)) +
+            geom_bar(stat = "identity", width = 1, color = "black", fill = "lightgrey") +
+            geom_hline(yintercept = summary_stats$mean_bearing, color = "red", linetype = "solid", linewidth = 3, label = "Mean") +
+            geom_hline(yintercept = summary_stats$mean_bearing + summary_stats$sd_bearing, color = "black", linetype = "dotted", linewidth = 1, label = "Mean + SD") +
+            geom_hline(yintercept = summary_stats$mean_bearing - summary_stats$sd_bearing, color = "black", linetype = "dotted", linewidth = 1, label = "Mean - SD") +
+            geom_hline(yintercept = summary_stats$mean_bearing + summary_stats$se_bearing, color = "green", linetype = "dashed", linewidth = 1, label = "Mean + SE") +
+            geom_hline(yintercept = summary_stats$mean_bearing - summary_stats$se_bearing, color = "green", linetype = "dashed", linewidth = 1, label = "Mean - SE") +
+            labs(x = "Year Pair", y = "Compass Bearing", title = "Lane Snapper gCOB Annual Movements") +
+            theme_minimal() +
+            theme(axis.text.x = element_text(angle = 45, hjust = 1),
+                  panel.grid.major = element_blank(),  # Remove major grid lines
+                  panel.grid.minor = element_blank()) +    # Remove minor grid lines
+            scale_y_continuous(breaks = c(0, 90, 180, 270, 360))
+  
+# Save the combined plot
+ggsave("AFS_figures/lane_snapper_gCOBs_annual_movements.png", lane_snapper_annual_movements_fig1, height = 3, width = 6)
+
+
+```
+
+
+
+
+
+
+## wind rose plots showing averages
+
+```{r}
+
+# 
+# # Create a blank data frame with all compass directions
+# # Assume a total of 36 bins (0-10, 10-20, ..., 350-360)
+# angles <- seq(0, 350, by = 10)
+# blank_data <- data.frame(
+#   bearing = factor(angles, levels = angles), # Create factor to ensure all levels are displayed
+#   num_species = rep(0, length(angles))       # Set to 0 as this is a blank plot
+# )
+# 
+# # Extract labels for bins based on their midpoints
+# bin_labels <- seq(0, 360, by = 10) # Midpoints of 36 bins (0-10, 10-20, ..., 350-360)
+# 
+# # Labels for key angles (0, 90, 180, 270)
+# less_bin_labels <- c("0", rep("",8), "90", rep("",8), "180", rep("",8), "270", rep("",8))
+# 
+# # # Ensure the correct order of bearing bins
+# # binned_climate_gCOBs <- binned_climate_gCOBs %>%
+# #   mutate(bearing_bins = factor(bearing_bins,
+# #                                levels = levels(bearing_bins),
+# #                                labels = bin_labels[1:36]))
+# 
+# # Create the wind rose plot
+# ggplot(data = summary_stats, aes(x = mean_bearing, y = num_species)) +
+#   geom_bar(stat = "identity", width = 1, color = "black") +
+#   geom_bar(data = summary_stats, stat = "identity", aes(x = mean_bearing, y = num_species),
+#            width = 1, fill = "blue", alpha = 0.7) +
+#   coord_polar(theta = "x", start = -pi/32, direction = 1) +   # Adjust start for correct orientation (due north at 12 o'clock)
+#   scale_fill_manual(values = c("red")) +
+#   scale_y_continuous(expand = c(0, 0)) +
+#   scale_x_discrete(drop = FALSE,
+#                    labels = less_bin_labels,    # Less labels for 0, 90, 180, 270 degrees
+#                    expand = c(0,0.5)) +  
+#   geom_text(aes(label = num_species), position = position_stack(vjust = 0.9), size = 3) +  # Add labels to petals
+#   theme_minimal() +  # Apply a minimal theme for a clean look
+#   # theme(axis.title = element_blank(),
+#   #       axis.text.x = element_text(size = 12, vjust = 0.5),
+#   #       axis.text.y = element_blank(),
+#   #       panel.grid = element_blank(),
+#   #       legend.position = "right") +  # Position the legend to the right
+#   labs(fill = "Climate Distribution") +
+#   ggtitle("Wind Rose Plot with Averaged gCOBs and Climate Distribution")
+
+
+```
+
+
+
+```{r}
+
+library(ggplot2)
+library(dplyr)
+
+# Create a blank data frame with all compass directions
+# Assume a total of 36 bins (0-10, 10-20, ..., 350-360)
+angles <- seq(0, 350, by = 10)
+blank_data <- data.frame(
+  bearing = factor(angles, levels = angles), # Create factor to ensure all levels are displayed
+  num_species = rep(0, length(angles))       # Set to 0 as this is a blank plot
+)
+
+# Labels for key angles (0, 90, 180, 270)
+less_bin_labels <- c("0", rep("", 8), "90", rep("", 8), "180", rep("", 8), "270", rep("", 8))
+
+# Create the blank wind rose plot
+ggplot(data = blank_data, aes(x = bearing, y = num_species)) +
+  geom_bar(stat = "identity", width = 1, color = "black", fill = "lightgrey") +
+  # geom_bar(data = summary_stats, stat = "identity", aes(x = mean_bearing, y = num_species),
+  #          width = 1, fill = "blue", alpha = 0.7) +
+  coord_polar(theta = "x", start = -pi/36) +  # Adjust start to align 0 degrees at the top
+  scale_y_continuous(expand = c(0, 0)) +
+  scale_x_discrete(labels = less_bin_labels, expand = c(0,0.5)) +
+  theme_minimal() +
+  # theme(
+  #   axis.title = element_blank(),
+  #   axis.text.x = element_text(size = 12, hjust = 1),
+  #   axis.text.y = element_blank(),
+  #   panel.grid = element_blank(),
+  #   panel.grid.major = element_blank(),
+  #   panel.grid.minor = element_blank()
+  # ) +
+  ggtitle("Blank Wind Rose Plot with All Compass Directions")
+
+
+```
+
+
+```{r}
+
+# Create a blank data frame with all compass directions
+# Assume a total of 36 bins (0-10, 10-20, ..., 350-360)
+angles <- as.numeric(seq(0, 360, by = 1))
+angles <- as.numeric(c(seq(0, 359, by = 1), 359.999999999))
+blank_data <- data.frame(
+  bearing = (angles), # Create factor to ensure all levels are displayed
+  num_species = as.numeric(rep(0, length(angles)))       # Set to 0 as this is a blank plot
+)
+
+# Labels for key angles (0, 90, 180, 270)
+less_bin_labels <- c("0", rep("", 8), "90", rep("", 8), "180", rep("", 8), "270", rep("", 8))
+
+
+# Create the blank wind rose plot
+lane_snapper_windrose_Fig1 <- ggplot(data = blank_data, aes(x = bearing, y = num_species)) +
+                                  geom_bar(stat = "identity", width = 1, color = "black", fill = "lightgrey") +
+                                  geom_bar(data = summary_stats, stat = "identity", aes(x = mean_bearing, y = num_species),
+                                           width = 8, fill = "red") +
+                                  coord_polar(theta = "x", start = 0, direction = 1) +  # adjust start to align 0 degrees at the top
+                                  scale_y_continuous(expand = c(0, 0),
+                                                     limits = c(0,1)) +
+                                  scale_x_continuous(breaks = c(0,90,180,270),
+                                                     labels = c("0", "90", "180", "270"),
+                                                     expand = c(0,0)) +
+                                  theme_minimal() +
+                                  theme(axis.text.x = element_text(size = 16, face = "bold",
+                                                                   margin = margin(t = 5),  # Add margin to avoid overlap with outer axis line
+                                                                   vjust = 0.5, hjust = 0.5),  
+                                    axis.title.x = element_text(size = 12, face = "bold"),  # Bold x-axis label
+                                    axis.title.y = element_blank(),
+                                    axis.text.y = element_blank(),
+                                    panel.grid.major.x = element_line(color = "gray", size = 1),
+                                    panel.grid.minor.x = element_blank(),
+                                    panel.grid.major.y = element_line(color = "gray", size = 0.5),
+                                    panel.grid.minor.y = element_blank(),
+                                    panel.border = element_blank()
+                                  ) +
+                                  labs(x = "Compass Bearing",
+                                       y = "Number of Species")
+
+
+# Save the combined plot
+ggsave("AFS_figures/lane_snapper_windrose_Fig1.png", lane_snapper_windrose_Fig1, height = 6, width = 6)
+
+
+
+
+# Create the blank wind rose plot
+ggplot(data = blank_data, aes(x = bearing, y = num_species)) +
+  geom_bar(stat = "identity", width = 1, color = "black", fill = "lightgrey") +
+  geom_bar(data = summary_stats, stat = "identity", aes(x = mean_bearing, y = num_species),
+           width = 8, fill = "red") +
+  coord_polar(theta = "x", start = 0, direction = 1) +  # adjust start to align 0 degrees at the top
+  scale_y_continuous(expand = c(0, 0),
+                     limits = c(0,1)) +
+  scale_x_continuous(breaks = c(0,90,180,270),
+                     labels = c("0", "90", "180", "270"),
+                     expand = c(0,0)) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(size = 16, face = "bold",
+                                   margin = margin(t = 5),  # Add margin to avoid overlap with outer axis line
+                                   vjust = 0.5, hjust = 0.5),  
+    axis.text.y = element_text(size = 12),  # Optional: Adjust size of y-axis labels if needed
+    axis.title.x = element_text(size = 12, face = "bold"),  # Bold x-axis label
+    axis.title.y = element_text(size = 12, face = "bold"),  # Bold y-axis label
+    panel.grid.major.x = element_line(color = "gray", size = 1),
+    panel.grid.minor.x = element_blank(),
+    panel.grid.major.y = element_line(color = "gray", size = 0.5),
+    panel.grid.minor.y = element_blank(),
+    panel.border = element_blank()
+    # axis.line.y.right = element_blank()
+  ) +
+  labs(x = "Compass Bearing",      # Set x-axis label
+       y = "Number of Species",    # Set y-axis label
+       title = "Blank Wind Rose Plot with All Compass Directions")
+  # ggtitle("Blank Wind Rose Plot with All Compass Directions")
+
+```
+
+
+
+# wind rose plots for ALL FISH SPECIES - showing average shift in gCOBs over time
+
+```{r}
+
+
+# Function to calculate standard error
+std_error <- function(x) {
+  sd(x, na.rm = TRUE) / sqrt(sum(!is.na(x)))
+}
+
+# Summarize gCOB data by species: calculate mean, SD, and SE for bearing and distance
+summarized_gCOBs <- annual_movement_results %>%
+  group_by(species) %>%
+  summarize(
+    avg_bearing = mean(bearing, na.rm = TRUE),
+    sd_bearing = sd(bearing, na.rm = TRUE),  # Standard deviation of bearing
+    se_bearing = std_error(bearing),  # Standard error of bearing
+    avg_distance = mean(distance, na.rm = TRUE),
+    sd_distance = sd(distance, na.rm = TRUE),  # Standard deviation of distance
+    se_distance = std_error(distance),  # Standard error of distance
+    sample_size = n(),
+    earliest_year = min(as.numeric(substring(year_pair, 1, 4)), na.rm = TRUE),
+    latest_year = max(as.numeric(substring(year_pair, 6, 9)), na.rm = TRUE)
+  ) %>%
+  ungroup()
+
+
+
+# Join with climate zone data
+binned_climate_gCOBs <- summarized_gCOBs %>%
+  rename(species_name = species) %>%
+  left_join(species_climate_df, join_by(species_name)) %>% 
+  rename(species = species_name) %>%
+  filter(climate_zone != "deep-water") %>% 
+  # Bin the average bearing into 36 bins
+  mutate(bearing_bins = cut(avg_bearing, breaks = seq(0, 360, length.out = 37), include.lowest = TRUE)) %>%
+  group_by(climate_zone, bearing_bins) %>%
+  summarize(
+    num_species = n(),
+    avg_distance = mean(avg_distance, na.rm = TRUE),
+    .groups = 'drop'
+  ) %>%
+  ungroup()
+
+# change order of factor levels for climate zones
+binned_climate_gCOBs$climate_zone <- factor(binned_climate_gCOBs$climate_zone, 
+                                            levels = c("tropical", "subtropical", "temperate"))
+
+# Verify the changes
+levels(binned_climate_gCOBs$climate_zone)
+
+
+
+
+
+# Extract labels for bins based on their midpoints
+bin_labels <- seq(0, 360, by = 10) # Midpoints of 36 bins (0-10, 10-20, ..., 350-360)
+
+# Labels for key angles (0, 90, 180, 270)
+less_bin_labels <- c("0", rep("",8), "90", rep("",8), "180", rep("",8), "270", rep("",8))
+
+# Ensure the correct order of bearing bins
+binned_climate_gCOBs <- binned_climate_gCOBs %>%
+  mutate(bearing_bins = factor(bearing_bins,
+                               levels = levels(bearing_bins),
+                               labels = bin_labels[1:36]))
+
+# Create the wind rose plot
+GoM_20102022_fall_windroses_fig1 <- 
+  ggplot(data = binned_climate_gCOBs, aes(x = bearing_bins, y = num_species,
+                                        fill = climate_zone,
+                                        group = climate_zone)) +
+      geom_bar(stat = "identity", width = 1, color = "black") +
+      coord_polar(theta = "x", start = -pi/32, direction = 1) +   # Adjust start for correct orientation (due north at 12 o'clock)
+      scale_fill_manual(values = c("tropical" = "coral", "temperate" = "skyblue", "subtropical" = "lightgreen", "deep-water" = "navy")) +
+      scale_y_continuous(expand = c(0, 0)) +
+      scale_x_discrete(drop = FALSE,
+                       labels = less_bin_labels,    # Less labels for 0, 90, 180, 270 degrees
+                       expand = c(0,0.5)) +  
+      geom_text(aes(label = num_species), position = position_stack(vjust = 0.9), size = 3) +  # Add labels to petals
+    theme_minimal() +
+    theme(plot.title = element_text(size = 18, face = "bold", vjust = 0.5, hjust = 0.5),
+      axis.text.x = element_text(size = 14, face = "bold",
+                                   margin = margin(t = 5),  # Add margin to avoid overlap with outer axis line
+                                   vjust = 0.5, hjust = 0.5),  
+      axis.text.y = element_text(size = 12),  # Optional: Adjust size of y-axis labels if needed
+      axis.title.x = element_text(size = 12, face = "bold"),  # Bold x-axis label
+      axis.title.y = element_text(size = 12, face = "bold"),  # Bold y-axis label
+      panel.grid.major.x = element_line(color = "gray", size = 0.3),
+      panel.grid.minor.x = element_blank(),
+      panel.grid.major.y = element_line(color = "gray", size = 0.2),
+      panel.grid.minor.y = element_blank(),
+      panel.border = element_blank(),
+      legend.position = "bottom",
+      legend.title = element_blank(),
+      strip.text.x = element_text(size = 16, face = "bold", vjust = 0.5, hjust = 0.5)
+      # axis.line.y.right = element_blank()
+    ) +
+  labs(x = "Compass Bearing",      # Set x-axis label
+       y = "Number of Species",    # Set y-axis label
+       title = "GoM 2010-2022 Fall") +
+  facet_wrap(~climate_zone, scales = "free_y", nrow = 3)  # Facet by climate zone with free y-scales
+
+GoM_20102022_fall_windroses_fig1
+
+# Save the combined plot
+ggsave("AFS_figures/GoM_20102022_fall_windroses_fig1.png", GoM_20102022_fall_windroses_fig1, height = 11, width = 6)
+
+
+```
+
+
+
+
+
+
+
+########################################### DID NOT DO ANYTHING PAST HERE YET FOR AFS ##################################################
+########################################################################################################################################
+
+
+
+
+
+### Number of trawl stations sampled each year
+
+```{r get number of trawl stations sampled each year}
+#| echo: false
+
+data_to_use_here_3 <- bio_data_clean_yr2010_2022_m101112
+
+
+station_data <- data_to_use_here_3 %>% 
+  group_by(STATIONID) %>% 
+  summarize(CRUISEID = unique(CRUISEID),
+            VESSEL = unique(VESSEL),
+            CRUISE_NO = unique(CRUISE_NO),
+            P_STA_NO = unique(P_STA_NO),
+            YR = unique(YR),
+            DEPTH_SSTA = unique(DEPTH_SSTA),
+            MO_DAY_YR = unique(MO_DAY_YR),
+            DECSLAT = unique(DECSLAT),
+            DECSLON = unique(DECSLON),
+            DECELAT = unique(DECELAT),
+            DECELON = unique(DECELON),
+            TEMP_SSURF = unique(TEMP_SSURF),
+            TEMP_BOT = unique(TEMP_BOT),
+            TEMP_SAIR = unique(TEMP_SAIR))
+
+
+stations_num_yr <- station_data %>% 
+  group_by(YR) %>% 
+  summarize('# of trawls' = n(),
+            months = paste(unique(month(dmy(MO_DAY_YR))), sep = ";", collapse = "; ")) %>% 
+  rename(year = YR)
+
+stations_num_yr_formatted <- kable(stations_num_yr)
+
+write_csv(stations_num_yr, file = "output/stations_num_yr_yr2010_2022_m101112.csv")
+
+```
+
+**Table 1.** Number of trawl stations for each year of data and the fall months during which sampling took place. `r stations_num_yr_formatted`
+
+### Map of trawl stations
+
+```{r map the trawl station locations, fig.width=8.5, fig.height=8.5}
+#| echo: false
+
+
+station_maps <- base_map +
+  geom_point(data = station_data,
+             na.rm = FALSE,
+             aes(x = DECSLON,
+                 y = DECSLAT,
+                 group = NA,
+                 fill = YR),
+             size = 0.6,
+             shape = 21,
+             color = "darkorange4",
+             fill = "orange",
+             stroke = 0.05) +    # width of border line
+  # scale_fill_viridis_d(name = "Year") +
+    # scale_fill_gradient(low = "darkgray",
+    #                    high = "springgreen",
+    #                    limits = c(),
+    #                    # breaks = c(),
+    #                    # labels = c(),
+    #                    name = "Year") +
+  theme(text = element_text(family = "Times",
+                            size = 14),
+        plot.title = element_text(face = "bold",
+                                  hjust = 0.5),
+        axis.title = element_text(size = 12,
+                                  face = "bold"),
+        axis.text = element_text(size = 10),
+        legend.title = element_text(size = 12,
+                                    face = "bold",
+                                    hjust = 0.5),
+        legend.text = element_text(size = 10),
+        legend.position = "none") +
+  labs(title = "2010 - 2022 October, November, December Data") +
+  facet_wrap(~YR)
+
+
+station_maps
+
+ggsave("plots/station_maps_yr2010_2022_m101112.pdf", plot = station_maps, width = 9, height = 8.5)
+
+
+```
+
+**Figure 1.** Trawl sampling locations for each year of data collection for this subset of data (2010-2022 fall sampling in months of October, November, and December).
+
+
+
+
+```{r get list of fish species taxonomic names}
+#| echo: false
+
+## species list for 2010 - 2022 fall months (10,11,12) data only
+species_df_yr2010_2022_m101112 <- bio_data_clean_yr2010_2022_m101112 %>% 
+  select(new_TAXON, RANK) %>% 
+  filter(RANK == "SPECIES") %>% 
+  distinct(new_TAXON, .keep_all = TRUE) %>% 
+  arrange(new_TAXON)
+
+
+# dim(species_df_yr2010_2022_m101112) # 500 unique taxonomic names
+species_vec_yr2010_2022_m101112 <- species_df_yr2010_2022_m101112$new_TAXON
+num_species <- length(species_vec_yr2010_2022_m101112) # 500 unique taxonomic names
+
+
+```
+
+There are `r num_species` fish species that were caught in trawls in this subset of data.
+
+```{r gCOB analyses}
+#| echo: false
+
+# Step 1 - use fish_calculate_gCOB function
+# Applying the gCOB calculate function to each unique species for the dataset only containing 2010 - 2022 data
+# create an empty list to store cg dataframe
+gCOBs_yr2010_2022_m101112 <- list()
+
+# Apply the fish_calculate_gCOB function to each unique species and combine results into a list
+result_list_yr2010_2022_m101112 <- purrr::map(species_vec_yr2010_2022_m101112, ~fish_calculate_gCOB(data = bio_data_clean_yr2010_2022_m101112,
+                                                                                                    output_name = "gCOBs_yr2010_2022_m101112",
+                                                                                                    taxonomic_column = "new_TAXON",
+                                                                                                    common_name_column = "new_TAXON",
+                                                                                                    species_name = .))
+
+
+
+# Step 2 - filter to only include fish species with 5+ gCOB observations
+# Filter the list of data frames
+gCOBs_yr2010_2022_m101112 <- filter_gCOB_dataframes(gCOBs_yr2010_2022_m101112, min_years = 5)
+
+# get updated list of fish species names
+species_vec_yr2010_2022_m101112 <- gsub("_gCOB", "", names(gCOBs_yr2010_2022_m101112))
+
+# get number of fish species in filtered dataset
+filtered_num_species <- length(species_vec_yr2010_2022_m101112)
+
+
+
+# Step 3 - use test_gCOBs_over_time function
+# initiate empty data frame to store data in
+gCOB_trends_yr2010_2022_m101112 <- data.frame(species = NA,
+                                              latitude_year_coef = NA,
+                                              latitude_year_SE = NA,
+                                              latitude_pvalue = NA,
+                                              latitude_rsquared = NA,
+                                              latitude_rsquared_adj = NA,
+                                              longitude_year_coef = NA,
+                                              longitude_year_SE = NA,
+                                              longitude_pvalue = NA,
+                                              longitude_rsquared = NA,
+                                              longitude_rsquared_adj = NA)
+
+# initiate empty lists to store latitude and longitude model outputs
+lat_models_yr2010_2022_m101112 <- list()
+long_models_yr2010_2022_m101112 <- list()
+
+# apply function
+trends_results_yr2010_2022_m101112 <- purrr::map(species_vec_yr2010_2022_m101112,
+                                                 ~ test_gCOBs_over_time(species_name = .,
+                                                                        input_gCOBs = gCOBs_yr2010_2022_m101112,
+                                                                        output_df_name = "gCOB_trends_yr2010_2022_m101112",
+                                                                        latitude_models_output_name = "lat_models_yr2010_2022_m101112",
+                                                                        longitude_models_output_name = "long_models_yr2010_2022_m101112"))
+
+# remove row of NAs at beginning of dataframe
+gCOB_trends_yr2010_2022_m101112 <- gCOB_trends_yr2010_2022_m101112 %>% 
+  slice(-1)
+
+
+# export results as csv file
+write_csv(gCOB_trends_yr2010_2022_m101112, file = "output/gCOB_trends_results_raw_yr2010_2022_m101112.csv")
+
+
+```
+
+Of those `r num_species` fish species, only `r filtered_num_species` of them had gCOB values for at least 5 years. For these fish species, linear models were constructed to test if their latitude and longitude gCOBs had shifted over time.
+
+```{r summarizing trends in gCOBs - pvalue summary}
+#| echo: false
+
+# Version 1 - summarizing based on p-values
+# specify the gCOB trends dataframe to use here
+gCOB_trends_data <- gCOB_trends_yr2010_2022_m101112 
+
+# join climate zone information to gCOB_trends
+climate_gCOB_trends <- gCOB_trends_data %>%
+  rename(species_name = species) %>%
+  left_join(species_climate_df, join_by(species_name)) %>% 
+  rename(species = species_name)
+
+
+# summarize the number of fish species that show significant shifts in latitude or longitude based on significant p-values
+significant_pvalues <- climate_gCOB_trends %>% 
+  group_by(climate_zone) %>% 
+  summarize(n = n(),
+            num_sig_pvalues_lat = length(which(latitude_pvalue < 0.05)),
+            num_sig_pvalues_long = length(which(longitude_pvalue < 0.05)),
+            num_sig_lat_shift_north = length(which(latitude_pvalue < 0.05 & latitude_year_coef > 0)),
+            num_sig_lat_shift_south = length(which(latitude_pvalue < 0.05 & latitude_year_coef < 0)),
+            num_sig_long_shift_west = length(which(longitude_pvalue < 0.05 & longitude_year_coef < 0)),
+            num_sig_long_shift_east = length(which(longitude_pvalue < 0.05 & longitude_year_coef > 0))
+  )
+         
+# significant_pvalues
+
+# export to csv file
+write_csv(significant_pvalues, file = "output/gCOB_trends_pvalue_summary_yr2010_2022_m101112.csv")
+
+
+```
+
+```{r summarizing trends in gCOBs - 95CI summary}
+#| echo: false
+
+# Step 1 - use combine_and_modify_models function to get single dataframe of model results from lists of model output
+# latitudinal models
+lat_models_df_yr2010_2022_m101112 <- combine_and_modify_models(model_list = lat_models_yr2010_2022_m101112,
+                                                               output_name = "lat_models_df_yr2010_2022_m101112",
+                                                               pattern = "latitude")
+# longitudinal models
+long_models_df_yr2010_2022_m101112 <- combine_and_modify_models(model_list = long_models_yr2010_2022_m101112,
+                                                                output_name = "long_models_df_yr2010_2022_m101112",
+                                                                pattern = "longitude")
+
+
+# Step 2 - summarize trends based on 95CIs not overlapping with zero
+
+# summarize the number of fish species that show significant shifts in latitude or longitude based on 95CIs that do not overlap with zero
+## latitude models
+significant_95CIs_lat <- lat_models_df_yr2010_2022_m101112 %>% 
+  filter(term != "(Intercept)") %>%
+  mutate(signif_95CI = ifelse(conf.low < 0 & conf.high > 0, "not significant", "significant")) %>% 
+  mutate(signif_pvalue = ifelse(p.value < 0.05, "significant", "not significant")) %>% 
+  group_by(climate_zone) %>% 
+  summarize(n = n(),
+            num_sig_95CIs_lat = sum(signif_95CI == "significant"),
+            num_sig_pvalues_lat = sum(signif_pvalue == "significant"),
+            num_sig_95CIs_lat_shift_north = sum(signif_95CI == "significant" & estimate > 0),
+            num_sig_95CIs_lat_shift_south = sum(signif_95CI == "significant" & estimate < 0),
+            north_shift_species = paste(species[signif_95CI == "significant" & estimate > 0], collapse = ", "),
+            south_shift_species = paste(species[signif_95CI == "significant" & estimate < 0], collapse = ", ")
+  )
+
+
+## longitude models
+significant_95CIs_long <- long_models_df_yr2010_2022_m101112 %>% 
+  filter(term != "(Intercept)") %>%
+  mutate(signif_95CI = ifelse(conf.low < 0 & conf.high > 0, "not significant", "significant")) %>% 
+  mutate(signif_pvalue = ifelse(p.value < 0.05, "significant", "not significant")) %>% 
+  group_by(climate_zone) %>% 
+  summarize(n = n(),
+            num_sig_95CIs_long = sum(signif_95CI == "significant"),
+            num_sig_pvalues_long = sum(signif_pvalue == "significant"),
+            num_sig_95CIs_long_shift_west = sum(signif_95CI == "significant" & estimate < 0),
+            num_sig_95CIs_long_shift_east = sum(signif_95CI == "significant" & estimate > 0),
+            west_shift_species = paste(species[signif_95CI == "significant" & estimate < 0], collapse = ", "),
+            east_shift_species = paste(species[signif_95CI == "significant" & estimate > 0], collapse = ", ")
+  )
+
+
+## combine output from latitude and longitude summary dataframes
+all_significant_95CIs <- significant_95CIs_lat %>% 
+  left_join(significant_95CIs_long, join_by(climate_zone))
+
+
+## export to csv file
+write_csv(all_significant_95CIs, "output/gCOB_significant_trends_yr2010_2022_m101112.csv")
+
+
+```
+
+
+
+
+
+```{r formatting summary tables}
+#| echo: false
+
+
+table_2 <- all_significant_95CIs %>% 
+  select(-north_shift_species, -south_shift_species, -west_shift_species, -east_shift_species,
+         -n.y,
+         -num_sig_pvalues_lat, -num_sig_pvalues_long) %>% 
+    rename('n' = n.x,
+         'significant latitude shift' = num_sig_95CIs_lat,
+         'North shifted' = num_sig_95CIs_lat_shift_north,
+         'South shifted'= num_sig_95CIs_lat_shift_south,
+         'significant longitude shift' = num_sig_95CIs_long,
+         'East shifted' = num_sig_95CIs_long_shift_east,
+         'West shifted'= num_sig_95CIs_long_shift_west)
+
+table_2_formatted <- knitr::kable(table_2)
+
+
+
+```
+
+**Table 2.** The number of fish species that have significantly shifted latitudinally or longitudinally based upon their gCOBs. `r table_2_formatted`
+
+
+
+
+
+```{r getting separate tables for each climate zone with the species exhibiting each type of shift}
+#| echo: false
+
+
+species_tables <- all_significant_95CIs %>% 
+  select(climate_zone, north_shift_species, south_shift_species, west_shift_species, east_shift_species)
+
+
+# Modified code to ensure each species has a unique row identifier
+extracted_data <- species_tables %>%
+  pivot_longer(cols = -climate_zone, names_to = "direction", values_to = "species_list") %>%
+  separate_rows(species_list, sep = ",\\s*") %>%
+  filter(species_list != "") %>%
+  mutate(direction = str_replace(direction, "_shift_species", "")) %>%
+  group_by(climate_zone, direction) %>%
+  mutate(row_id = row_number()) %>%
+  ungroup()
+
+# Get available direction column names
+available_directions <- intersect(names(extracted_data), c("north", "south", "east", "west"))
+
+
+# Pivot wider while keeping the unique row identifier
+wide_data <- extracted_data %>%
+  pivot_wider(names_from = direction, values_from = species_list, values_fn = list) %>%
+  # glimpse()
+  # unnest(c(south, west, east, north), names_sep = "_") %>%
+  unnest(cols = all_of(available_directions), names_sep = "_") %>% 
+  as.data.frame() %>% 
+  # # replace NULL values with NA
+  # mutate(across(all_of(available_directions), ~ ifelse(. == "NULL", NA, .))) %>% 
+  select(-row_id) %>%
+  arrange(climate_zone)
+
+
+# Filter for the tropical climate zone
+tropical_table <- wide_data %>%
+  filter(climate_zone == "tropical") %>%
+  select(-climate_zone)
+
+# get directions of significant shifts
+tropical_directions <- intersect(names(tropical_table), c("north", "south", "east", "west"))
+
+# Output the tropical table
+# tropical_table
+
+table_3 <- tropical_table %>% 
+  mutate(across(all_of(tropical_directions), str_to_sentence))
+
+table_3_formatted <- knitr::kable(table_3)
+
+
+# Filter for the subtropical climate zone
+subtropical_table <- wide_data %>%
+  filter(climate_zone == "subtropical") %>%
+  select(-climate_zone)
+
+# get directions of significant shifts
+subtropical_directions <- intersect(names(subtropical_table), c("north", "south", "east", "west"))
+
+table_4 <- subtropical_table %>% 
+  mutate(across(all_of(subtropical_directions), str_to_sentence))
+
+table_4_formatted <- knitr::kable(table_4)
+
+
+
+# Filter for the temperate climate zone
+temperate_table <- wide_data %>%
+  filter(climate_zone == "temperate") %>%
+  select(-climate_zone)
+
+# get directions of significant shifts
+temperate_directions <- intersect(names(temperate_table), c("north", "south", "east", "west"))
+
+table_5 <- temperate_table %>% 
+  mutate(across(all_of(temperate_directions), str_to_sentence))
+
+table_5_formatted <- knitr::kable(table_5)
+
+
+```
+
+**Table XX.** The tropical fish species that have significantly shifted their geographical center of biomass (gCOB) over time.
+`r table_3_formatted`
+
+**Table XX.** The subtropical fish species that have significantly shifted their geographical center of biomass (gCOB) over time.
+`r table_4_formatted`
+
+**Table XX.** The temperate fish species that have significantly shifted their geographical center of biomass (gCOB) over time.
+`r table_5_formatted`
+
+
+
+
+```{r make figures of gCOB coefficient estimates}
+#| echo: false
+
+plot_lat_long_gCOB_data(lat_data = lat_models_df_yr2010_2022_m101112,
+                        long_data = long_models_df_yr2010_2022_m101112,
+                        title_prefix = "2010-2022 October, November, & December")
+
+
+# should produce four figures
+# Fig_1_yr2010_2022_m101112
+# Fig_2_yr2010_2022_m101112
+# Fig_3_yr2010_2022_m101112
+# Fig_4_yr2010_2022_m101112
+
+
+```
+
+
+```{r Fig_2,  fig.width=8.5, fig.height=13}
+#| echo: false
+
+Fig_1_yr2010_2022_m101112
+
+# fig.cap = "all species latitude gCOBs",
+
+```
+
+**Figure 2.** Latitudinal trends in gCOBs for fish species (deep-water, subtropical, temperate, tropical).
+
+
+
+
+```{r Fig_3,  fig.width=8.5, fig.height=13}
+#| echo: false
+
+Fig_2_yr2010_2022_m101112
+
+# fig.cap = "all species longitude gCOBs",
+
+```
+
+**Figure 3.**Longitudinal trends in gCOBs for fish species (deep-water, subtropical, temperate, tropical).
+
+
+
+```{r Fig_4,  fig.width=8.5, fig.height=6.5}
+#| echo: false
+
+Fig_3_yr2010_2022_m101112
+
+# fig.cap = "significant latitude gCOBs",
+
+```
+
+**Figure 4.**Latitudinal trends in gCOBs for fish species (deep-water, subtropical, temperate, tropical) with a significant shift over time.
+
+
+
+```{r Fig_5,  fig.width=8.5, fig.height=5.5}
+#| echo: false
+
+Fig_4_yr2010_2022_m101112
+
+# fig.cap = "significant longitude gCOBs",
+
+```
+
+**Figure 5.**Longitudinal trends in gCOBs for fish species (deep-water, subtropical, temperate, tropical) with a significant shift over time.
+
+
+
+
