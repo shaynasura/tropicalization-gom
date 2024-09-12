@@ -1,6 +1,9 @@
 # data directory so data is not stored on GitHub
 data/
 
+# AFS_figures directory because they take up a lot of space
+AFS_figures/
+
 # History files
 .Rhistory
 .Rapp.history
