@@ -196,6 +196,127 @@ base_map
 ```
 
 
+## trawl stations per year - summarize data
+
+```{r get number of trawl stations sampled each year}
+#| echo: false
+
+data_to_use_here_3 <- bio_data_clean_yr2010_2022_m678
+
+
+# Summarize station data while preserving geometry
+station_data <- data_to_use_here_3 %>%
+  group_by(STATIONID) %>%
+  summarize(CRUISEID = unique(CRUISEID),
+            VESSEL = unique(VESSEL),
+            CRUISE_NO = unique(CRUISE_NO),
+            P_STA_NO = unique(P_STA_NO),
+            YR = unique(YR),
+            DEPTH_SSTA = unique(DEPTH_SSTA),
+            MO_DAY_YR = unique(MO_DAY_YR),
+            TEMP_SSURF = unique(TEMP_SSURF),
+            TEMP_BOT = unique(TEMP_BOT),
+            TEMP_SAIR = unique(TEMP_SAIR),
+            geometry = st_geometry(first(geometry)))  # Retain geometry column
+
+
+stations_num_yr <- station_data %>% 
+  group_by(YR) %>% 
+  summarize('# of trawls' = n(),
+            months = paste(unique(month(dmy(MO_DAY_YR))), sep = ";", collapse = "; ")) %>% 
+  rename(year = YR)
+
+# stations_num_yr_formatted <- knitr::kable(stations_num_yr) %>% 
+#   kableExtra::kable_styling(font_size = 10)
+# 
+# write_csv(stations_num_yr, file = "output/stations_num_yr_yr2010_2022_m678.csv")
+
+```
+
+
+
+
+## animated map of trawl locations
+
+```{r}
+
+# # Ensure data is in the correct CRS and convert to sf object
+# station_data_sf <- st_as_sf(station_data, 
+#                             coords = c("DECSLON", "DECSLAT"), 
+#                             crs = 4269)
+
+
+
+
+# Plot the base map with station points
+station_maps <- ggplot() +
+  geom_sf(data = world_base_map_sf, color = "black", fill = "white") +
+  geom_sf(data = usa_state_borders_sf, color = "black", fill = "white") +
+  geom_sf(data = station_data,
+          aes(geometry = geometry, fill = YR),  # Use geometry for plotting
+          size = 0.8,
+          shape = 21,
+          color = "darkorange4",
+          # fill = "darkorange4",
+          stroke = 0.05) +    # width of border line
+  coord_sf(xlim = c(-97.7, -79.9), ylim = c(24, 31), crs = st_crs(4269)) +
+  theme(panel.background = element_rect(fill = c("#CFEFFF")),
+        panel.border = element_rect(fill = NA, color = "black"),
+        text = element_text(family = "Times", size = 12),
+        plot.title = element_text(face = "bold", hjust = 0.5),
+        axis.title = element_text(size = 12, face = "bold"),
+        axis.text = element_text(size = 10),
+        legend.title = element_text(size = 12, face = "bold", hjust = 0.5),
+        legend.text = element_text(size = 10),
+        legend.position = "none") +
+  labs(title = "Trawl Stations for entire GoM\n2010 - 2022 June, July, August",
+       x = "Longitude", y = "Latitude")
+
+
+# Preview the map
+print(station_maps)
+
+
+# Animate the map
+animation <- station_maps +
+    transition_time(YR) +
+    ggtitle(label = NULL,  # No main title, just a subtitle
+            subtitle = bquote(.(paste0("GoM Summer 2010-2022\nYear: {frame_time}\nFrame {frame} of {nframes}")))) +
+    shadow_mark(alpha = 0.6,
+                color = "darkgray",
+                size = 1.1) +
+  scale_fill_gradient(low = "orange", high = "darkorange4",
+    limits = range(station_data$YR),
+    breaks = seq(min(station_data$YR), max(station_data$YR), by = 2),
+    labels = seq(min(station_data$YR), max(station_data$YR), by = 2),
+    name = "Year")
+
+
+num_years <- max(station_data$YR - min(station_data$YR)) + 1
+animated_station_maps <- animate(animation,
+                                 nframes = num_years,
+                                 fps = 2,
+                                 duration = (num_years + 5)/2,
+                                 end_pause = 5,
+                                 height = 4,
+                                 width = 6,
+                                 units = "in",
+                                 res = 300)
+
+animated_station_maps
+
+anim_save("AFS_figures/allGoM_yr2010_2022_m678_stations_animated_map1.gif", animation = animated_station_maps)
+
+
+```
+
+
+
+
+
+
+
+
 # get species list
 ```{r get list of fish species taxonomic names}
 #| echo: false
@@ -249,14 +370,17 @@ filtered_num_species <- length(species_vec_yr2010_2022_m678)
 
 # Step 3 - calculate change in gCOBs over time in terms of bearing and distance
 
-#initiate empty list
-movement_results <- list()
-
-gCOBs_data <- get("gCOBs_yr2010_2022_m678", envir = .GlobalEnv)
-movement_results <- calculate_all_gCOB_movements(gCOBs_data)
+# #initiate empty list
+# movement_results <- list()
+# 
+# gCOBs_data <- get("gCOBs_yr2010_2022_m678", envir = .GlobalEnv)
+# movement_results <- calculate_all_gCOB_movements(gCOBs_data)
 
 
 # Step 3 part 2 - calculate change in gCOBs from year to year (bearing and distance) for each species
+
+#initiate empty list
+annual_movement_results <- list()
 
 gCOBs_data <- get("gCOBs_yr2010_2022_m678", envir = .GlobalEnv)
 annual_movement_results <- calculate_annual_gCOB_movements(gCOBs_data)
@@ -360,7 +484,8 @@ GoM_20102022_summer_windroses_fig1 <-
       panel.grid.major.y = element_line(color = "gray", size = 0.2),
       panel.grid.minor.y = element_blank(),
       panel.border = element_blank(),
-      legend.position = "bottom",
+      # legend.position = "bottom",
+      legend.position = "right",
       legend.title = element_blank(),
       strip.text.x = element_text(size = 16, face = "bold", vjust = 0.5, hjust = 0.5)
       # axis.line.y.right = element_blank()
@@ -368,12 +493,16 @@ GoM_20102022_summer_windroses_fig1 <-
   labs(x = "Compass Bearing",      # Set x-axis label
        y = "Number of Species",    # Set y-axis label
        title = "GoM 2010-2022 Summer") +
-  facet_wrap(~climate_zone, scales = "free_y", nrow = 3)  # Facet by climate zone with free y-scales
+  facet_wrap(~climate_zone, scales = "free_y",
+             # nrow = 3,
+             ncol = 3)  # Facet by climate zone with free y-scales
 
 GoM_20102022_summer_windroses_fig1
 
 # Save the combined plot
-ggsave("AFS_figures/GoM_20102022_summer_windroses_fig1.png", GoM_20102022_summer_windroses_fig1, height = 11, width = 6)
+ggsave("AFS_figures/GoM_20102022_summer_windroses_fig1_v2.png", GoM_20102022_summer_windroses_fig1,
+       # height = 11, width = 6,
+       height = 4, width = 11)
 
 
 ```

@@ -1,0 +1,276 @@
+---
+title: "2_AFS_station_maps"
+author: "Shayna A. Sura"
+format: html
+---
+
+## Make animated map of trawl station locations over time
+
+### load packages
+```{r load packages}
+#| echo: false
+#| message: false
+#| warning: false
+
+library(tidyverse) # includes and loads the packages listed below
+# library(readr)
+# library(tidyr)
+# library(dplyr)
+# library(ggplot2)
+# library(lubridate)
+
+library(stringr)  # for manipulating text strings
+
+library(here) # helps with paths for files
+library(arsenal)
+
+library(purrr)
+
+library(broom) # for creating tibbles of model output information
+
+library(knitr) # for formatting tables
+library(kableExtra) # for formatting tables
+
+# libraries for spatial data & animating it...
+library(maps)
+library(ggmap)
+library(gganimate)
+library(gifski) # for gif output
+library(av) # for video output
+library(png)
+library(tools)
+
+library(sf)
+library(geosphere)  # for calculating change in bearing and distances for gCOBs
+
+
+# for maps with polygons for countries and states
+library(rnaturalearth)
+library(rnaturalearthdata)
+
+# library(scales)
+# library(ggbeeswarm)
+
+```
+
+
+
+### load custom functions
+```{r source custom functions to simplify conducting these analyses}
+#| echo: false
+
+# getwd()
+
+# source("R_scripts/functions/fish_calculate_gCOB.R")
+# source("R_scripts/functions/filter_gCOB_dataframes.R")
+# source("R_scripts/functions/calculate_gCOB_movement.R")
+# source("R_scripts/functions/calculate_gCOB_annual_movement.R")
+# source("R_scripts/functions/animate_fish_species_map.R")
+
+# source("R_scripts/functions/test_gCOBs_over_time.R")
+# source("R_scripts/functions/combine_and_modify_models.R")
+# source("R_scripts/functions/plot_lat_long_gCOB_data.R")
+
+
+```
+
+
+### load data
+```{r load data from csv file and filter for desired years and months}
+#| echo: false
+#| message: false
+
+# import csv of clean bio data
+bio_data_clean_climate <- read_csv(file = "data/clean_data/bio_data_clean_climate.csv")
+
+# # import csv with climate zone information for each fish species as web scraped from FishBase
+# species_climate_df <- read_csv(file = "output/species_climate_data.csv")
+
+
+```
+
+
+
+# IF USING DATA FROM .CSV FILES - MUST REDO GEOMETRIES
+
+## Convert latitude and longitude into spatial data
+ - Use coordinate reference system (crs) of *NAD83*, which is good for North America. It's specifically tied to the North American tectonic plate to minimize changes to coordinate values over time.
+      - versus WGS84, which is global.
+ - *NAD83 EPSG code = 4269*
+ - WGS84 EPSG code = 4326
+ - The underlying ellipsoid model is different for NAD83 versus WGS84.
+      - NAD83 uses the GRS80 ellipsoid
+      - WGS84 uses the WGS84 ellipsoid
+- Ellipsoid parameter values
+      - *NAD83*: 
+          - semi-major axis ('a'): 6378137.0 meters
+          - flattening ('f'): 1 / 298.257222101
+      - WGS84: 
+          - semi-major axis ('a'): 6378137.0 meters
+          - flattening ('f'): 1 / 298.257223563
+
+
+
+### convert to NAD83 coordinate reference system
+```{r}
+
+bio_data_clean_climate <- st_as_sf(bio_data_clean_climate, coords=c("DECSLON", "DECSLAT"), crs=4269, remove = FALSE)
+
+```
+
+
+
+### create base map of GoM
+```{r obtain GoM map}
+#| echo: false
+#| message: false
+
+
+# Get world polygons (already in sf format)
+world_base_map_sf <- ne_countries(scale = "medium", returnclass = "sf")
+
+# Get US state polygons (already in sf format)
+usa_state_borders_sf <- ne_states(country = "United States of America", returnclass = "sf")
+
+# # Check the CRS (default is 4326)
+# st_crs(world_base_map_sf)  # Should output EPSG:4326
+# st_crs(usa_state_borders_sf)  # Should output EPSG:4326
+
+# Transform the CRS to 4269 (if needed)
+world_base_map_sf <- st_transform(world_base_map_sf, 4269)
+usa_state_borders_sf <- st_transform(usa_state_borders_sf, 4269)
+
+
+# Plot the base map
+base_map <- ggplot() +
+  geom_sf(data = world_base_map_sf, color = "black", fill = "white") +
+  geom_sf(data = usa_state_borders_sf, color = "black", fill = "white") +
+  coord_sf(xlim = c(-97.7, -79.9), ylim = c(24, 31), crs = st_crs(4269)) +
+  theme(panel.background = element_rect(fill = c("#CFEFFF")),
+        panel.border = element_rect(fill = NA, color = "black")) +
+  labs(x = "Longitude", y = "Latitude")
+
+#plot base_map
+base_map
+
+# # Add point geometries to the base map
+# map_with_points <- base_map +
+#   geom_sf(data = bio_data_clean_yr1983_2022_m678_western, color = "red", size = 1.5)
+# 
+# # Plot the map with points
+# map_with_points
+
+
+```
+
+
+
+
+## trawl stations per year - summarize data
+
+```{r get number of trawl stations sampled each year}
+#| echo: false
+
+data_to_use_here_3 <- bio_data_clean_climate
+
+
+# Summarize station data while preserving geometry
+station_data <- data_to_use_here_3 %>%
+  group_by(STATIONID) %>%
+  summarize(CRUISEID = unique(CRUISEID),
+            VESSEL = unique(VESSEL),
+            CRUISE_NO = unique(CRUISE_NO),
+            P_STA_NO = unique(P_STA_NO),
+            YR = unique(YR),
+            DEPTH_SSTA = unique(DEPTH_SSTA),
+            MO_DAY_YR = unique(MO_DAY_YR),
+            TEMP_SSURF = unique(TEMP_SSURF),
+            TEMP_BOT = unique(TEMP_BOT),
+            TEMP_SAIR = unique(TEMP_SAIR),
+            geometry = st_geometry(first(geometry)))  # Retain geometry column
+
+
+stations_num_yr <- station_data %>% 
+  group_by(YR) %>% 
+  summarize('# of trawls' = n(),
+            months = paste(unique(month(dmy(MO_DAY_YR))), sep = ";", collapse = "; ")) %>% 
+  rename(year = YR)
+
+
+```
+
+
+
+
+## animated map of trawl locations
+
+```{r}
+
+# Plot the base map with station points
+station_maps <- ggplot() +
+  geom_sf(data = world_base_map_sf, color = "black", fill = "white") +
+  geom_sf(data = usa_state_borders_sf, color = "black", fill = "white") +
+  geom_sf(data = station_data,
+          aes(geometry = geometry, fill = YR),  # Use geometry for plotting
+          size = 0.8,
+          shape = 21,
+          color = "maroon4",
+          # fill = "darkorange4",
+          stroke = 0.05) +    # width of border line
+  coord_sf(xlim = c(-97.7, -79.9), ylim = c(24, 31), crs = st_crs(4269)) +
+  theme(panel.background = element_rect(fill = c("#CFEFFF")),
+        panel.border = element_rect(fill = NA, color = "black"),
+        text = element_text(family = "Times", size = 12),
+        plot.title = element_text(face = "bold", hjust = 0.5),
+        axis.title = element_text(size = 12, face = "bold"),
+        axis.text = element_text(size = 10),
+        legend.title = element_text(size = 12, face = "bold", hjust = 0.5),
+        legend.text = element_text(size = 10),
+        legend.position = "none") +
+  labs(title = "Trawl Stations for entire GoM\n1982 - 2022 all months",
+       x = "Longitude", y = "Latitude")
+
+
+# Preview the map
+print(station_maps)
+
+
+# Animate the map
+animation <- station_maps +
+    transition_time(YR) +
+    ggtitle(label = NULL,  # No main title, just a subtitle
+            subtitle = bquote(.(paste0("GoM 1982-2022\nYear: {frame_time}\nFrame {frame} of {nframes}")))) +
+    shadow_mark(alpha = 0.6,
+                color = "darkgray",
+                size = 1.1) +
+  scale_fill_gradient(low = "lightpink", high = "maroon4",
+    limits = range(station_data$YR),
+    breaks = seq(min(station_data$YR), max(station_data$YR), by = 2),
+    labels = seq(min(station_data$YR), max(station_data$YR), by = 2),
+    name = "Year")
+
+
+num_years <- max(station_data$YR - min(station_data$YR)) + 1
+animated_station_maps <- animate(animation,
+                                 nframes = num_years,
+                                 fps = 2,
+                                 duration = (num_years + 5)/2,
+                                 end_pause = 5,
+                                 height = 4,
+                                 width = 6,
+                                 units = "in",
+                                 res = 300)
+
+animated_station_maps
+
+anim_save("AFS_figures/allGoM_allYR_allmonths_allstations_animated_map1.gif", animation = animated_station_maps)
+
+
+```
+
+
+
+
+
+
+

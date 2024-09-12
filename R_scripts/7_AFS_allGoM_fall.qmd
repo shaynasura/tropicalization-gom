@@ -55,6 +55,7 @@ library(tools)
 
 library(sf)
 library(geosphere)  # for calculating change in bearing and distances for gCOBs
+library(circular)   # for calculating means from circular data (e.g., bearings) and weighting them by distance
 
 
 # for maps with polygons for countries and states
@@ -159,9 +160,9 @@ world_base_map_sf <- ne_countries(scale = "medium", returnclass = "sf")
 # Get US state polygons (already in sf format)
 usa_state_borders_sf <- ne_states(country = "United States of America", returnclass = "sf")
 
-# Check the CRS (default is 4326)
-st_crs(world_base_map_sf)  # Should output EPSG:4326
-st_crs(usa_state_borders_sf)  # Should output EPSG:4326
+# # Check the CRS (default is 4326)
+# st_crs(world_base_map_sf)  # Should output EPSG:4326
+# st_crs(usa_state_borders_sf)  # Should output EPSG:4326
 
 # Transform the CRS to 4269 (if needed)
 world_base_map_sf <- st_transform(world_base_map_sf, 4269)
@@ -189,6 +190,128 @@ base_map
 
 
 ```
+
+
+
+## trawl stations per year - summarize data
+
+```{r get number of trawl stations sampled each year}
+#| echo: false
+
+data_to_use_here_3 <- bio_data_clean_yr2010_2022_m101112
+
+
+# Summarize station data while preserving geometry
+station_data <- data_to_use_here_3 %>%
+  group_by(STATIONID) %>%
+  summarize(CRUISEID = unique(CRUISEID),
+            VESSEL = unique(VESSEL),
+            CRUISE_NO = unique(CRUISE_NO),
+            P_STA_NO = unique(P_STA_NO),
+            YR = unique(YR),
+            DEPTH_SSTA = unique(DEPTH_SSTA),
+            MO_DAY_YR = unique(MO_DAY_YR),
+            TEMP_SSURF = unique(TEMP_SSURF),
+            TEMP_BOT = unique(TEMP_BOT),
+            TEMP_SAIR = unique(TEMP_SAIR),
+            geometry = st_geometry(first(geometry)))  # Retain geometry column
+
+
+stations_num_yr <- station_data %>% 
+  group_by(YR) %>% 
+  summarize('# of trawls' = n(),
+            months = paste(unique(month(dmy(MO_DAY_YR))), sep = ";", collapse = "; ")) %>% 
+  rename(year = YR)
+
+# stations_num_yr_formatted <- knitr::kable(stations_num_yr) %>% 
+#   kableExtra::kable_styling(font_size = 10)
+# 
+# write_csv(stations_num_yr, file = "output/stations_num_yr_yr2010_2022_m101112.csv")
+
+```
+
+
+
+
+## animated map of trawl locations
+
+```{r}
+
+# # Ensure data is in the correct CRS and convert to sf object
+# station_data_sf <- st_as_sf(station_data, 
+#                             coords = c("DECSLON", "DECSLAT"), 
+#                             crs = 4269)
+
+
+
+
+# Plot the base map with station points
+station_maps <- ggplot() +
+  geom_sf(data = world_base_map_sf, color = "black", fill = "white") +
+  geom_sf(data = usa_state_borders_sf, color = "black", fill = "white") +
+  geom_sf(data = station_data,
+          aes(geometry = geometry, fill = YR),  # Use geometry for plotting
+          size = 0.8,
+          shape = 21,
+          color = "darkorange4",
+          # fill = "darkorange4",
+          stroke = 0.05) +    # width of border line
+  coord_sf(xlim = c(-97.7, -79.9), ylim = c(24, 31), crs = st_crs(4269)) +
+  theme(panel.background = element_rect(fill = c("#CFEFFF")),
+        panel.border = element_rect(fill = NA, color = "black"),
+        text = element_text(family = "Times", size = 12),
+        plot.title = element_text(face = "bold", hjust = 0.5),
+        axis.title = element_text(size = 12, face = "bold"),
+        axis.text = element_text(size = 10),
+        legend.title = element_text(size = 12, face = "bold", hjust = 0.5),
+        legend.text = element_text(size = 10),
+        legend.position = "none") +
+  labs(title = "Trawl Stations for entire GoM\n2010 - 2022 October, November, December",
+       x = "Longitude", y = "Latitude")
+
+
+# Preview the map
+print(station_maps)
+
+
+# Animate the map
+animation <- station_maps +
+    transition_time(YR) +
+    ggtitle(label = NULL,  # No main title, just a subtitle
+            subtitle = bquote(.(paste0("GoM Fall 2010-2022\nYear: {frame_time}\nFrame {frame} of {nframes}")))) +
+    shadow_mark(alpha = 0.6,
+                color = "darkgray",
+                size = 1.1) +
+  scale_fill_gradient(low = "orange", high = "darkorange4",
+    limits = range(station_data$YR),
+    breaks = seq(min(station_data$YR), max(station_data$YR), by = 2),
+    labels = seq(min(station_data$YR), max(station_data$YR), by = 2),
+    name = "Year")
+
+
+num_years <- max(station_data$YR - min(station_data$YR)) + 1
+animated_station_maps <- animate(animation,
+                                 nframes = num_years,
+                                 fps = 2,
+                                 duration = (num_years + 5)/2,
+                                 end_pause = 5,
+                                 height = 4,
+                                 width = 6,
+                                 units = "in",
+                                 res = 300)
+
+animated_station_maps
+
+anim_save("AFS_figures/allGoM_yr2010_2022_m101112_stations_animated_map1.gif", animation = animated_station_maps)
+
+
+```
+
+
+
+
+
+
 
 
 
@@ -241,14 +364,17 @@ filtered_num_species <- length(species_vec_yr2010_2022_m101112)  #347 species wi
 
 # Step 3 - calculate change in gCOBs over time in terms of bearing and distance
 
-#initiate empty list
-movement_results <- list()
+# #initiate empty list
+# movement_results <- list()
 
-gCOBs_data <- get("gCOBs_yr2010_2022_m101112", envir = .GlobalEnv)
-movement_results <- calculate_all_gCOB_movements(gCOBs_data)
+# gCOBs_data <- get("gCOBs_yr2010_2022_m101112", envir = .GlobalEnv)
+# movement_results <- calculate_all_gCOB_movements(gCOBs_data)
 
 
 # Step 3 part 2 - calculate change in gCOBs from year to year (bearing and distance) for each species
+
+#initiate empty list
+annual_movement_results <- list()
 
 gCOBs_data <- get("gCOBs_yr2010_2022_m101112", envir = .GlobalEnv)
 annual_movement_results <- calculate_annual_gCOB_movements(gCOBs_data)
@@ -340,13 +466,24 @@ lane_snapper_gCOBs_map <- base_map +
                                        stroke = 0.7,
                                        shape = 21,
                                        color = "black")  +
-                            scale_fill_viridis_c(alpha = 0.7)
+                            scale_fill_viridis_c(alpha = 0.7,
+                                                 name = "Year") +
+                            theme(text = element_text(family = "Times",
+                                                        size = 14),
+                                    plot.title = element_text(face = "bold"),
+                                    axis.title = element_text(size = 12,
+                                                              face = "bold"),
+                                    axis.text = element_text(size = 10),
+                                    legend.title = element_text(size = 12,
+                                                                face = "bold",
+                                                                hjust = 0.5),
+                                    legend.text = element_text(size = 10))
 
 lane_snapper_gCOBs_map
 
 
 # Save the combined plot
-ggsave("AFS_figures/lane_snapper_gCOBs_map.png", lane_snapper_gCOBs_map, height = 6, width = 8)
+ggsave("AFS_figures/lane_snapper_gCOBs_map_v2.png", lane_snapper_gCOBs_map, height = 6, width = 8)
 
 
 # getwd()
@@ -376,42 +513,138 @@ ggsave("AFS_figures/lane_snapper_gCOBs_map.png", lane_snapper_gCOBs_map, height 
 
 # plot of lane snapper bearing and distance changes in gCOBs over time
 ```{r}
+# 
+# lane_snapper_annual_movements
+# 
+# ls_avg_bearing = mean(lane_snapper_annual_movements$bearing)
+# ls_SD_bearing = sd(lane_snapper_annual_movements$bearing)
+# 
+# ls_avg_bearing
+# ls_SD_bearing
+# 
+# # Calculate mean, SD, and SE
+# summary_stats <- lane_snapper_annual_movements %>%
+#   summarise(
+#     mean_bearing = mean(bearing, na.rm = TRUE),
+#     sd_bearing = sd(bearing, na.rm = TRUE),
+#     se_bearing = sd_bearing / sqrt(n())
+#   ) %>% 
+#   mutate(num_species = c(1))
+# 
+# 
+# lane_snapper_annual_movements_fig1 <-
+#   ggplot(data = lane_snapper_annual_movements, aes(x = year_pair, y = bearing)) +
+#             geom_bar(stat = "identity", width = 1, color = "black", fill = "lightgrey") +
+#             geom_hline(yintercept = summary_stats$mean_bearing, color = "red", linetype = "solid", linewidth = 3, label = "Mean") +
+#             geom_hline(yintercept = summary_stats$mean_bearing + summary_stats$sd_bearing, color = "black", linetype = "dotted", linewidth = 1, label = "Mean + SD") +
+#             geom_hline(yintercept = summary_stats$mean_bearing - summary_stats$sd_bearing, color = "black", linetype = "dotted", linewidth = 1, label = "Mean - SD") +
+#             geom_hline(yintercept = summary_stats$mean_bearing + summary_stats$se_bearing, color = "green", linetype = "dashed", linewidth = 1, label = "Mean + SE") +
+#             geom_hline(yintercept = summary_stats$mean_bearing - summary_stats$se_bearing, color = "green", linetype = "dashed", linewidth = 1, label = "Mean - SE") +
+#             labs(x = "Year Pair", y = "Compass Bearing", title = "Lane Snapper gCOB Annual Movements") +
+#             theme_minimal() +
+#             theme(axis.text.x = element_text(angle = 45, hjust = 1),
+#                   panel.grid.major = element_blank(),  # Remove major grid lines
+#                   panel.grid.minor = element_blank()) +    # Remove minor grid lines
+#             scale_y_continuous(breaks = c(0, 90, 180, 270, 360))
+#   
+# # Save the combined plot
+# ggsave("AFS_figures/lane_snapper_gCOBs_annual_movements.png", lane_snapper_annual_movements_fig1, height = 3, width = 6)
+
+
+```
+
+
+# plot of lane snapper bearing and distance changes in gCOBs over time - CIRCULAR DATA & CALCULATIONS
+```{r}
 
 lane_snapper_annual_movements
 
-ls_avg_bearing = mean(lane_snapper_annual_movements$bearing)
-ls_SD_bearing = sd(lane_snapper_annual_movements$bearing)
+# ls_avg_bearing = mean(lane_snapper_annual_movements$bearing)
+# ls_SD_bearing = sd(lane_snapper_annual_movements$bearing)
+# 
+# ls_avg_bearing
+# ls_SD_bearing
 
-ls_avg_bearing
-ls_SD_bearing
-
-# Calculate mean, SD, and SE
+# calculate summary stats, but based on circular objects (bearings) and weighted by distance moved
 summary_stats <- lane_snapper_annual_movements %>%
+  mutate(
+    # Convert bearings to circular data
+    bearing_circular = circular(bearing, units = "degrees", template = "geographics")
+  ) %>%
   summarise(
-    mean_bearing = mean(bearing, na.rm = TRUE),
-    sd_bearing = sd(bearing, na.rm = TRUE),
+    # Calculate weighted circular mean using 'distance' as weights
+    mean_bearing = weighted.mean.circular(x = bearing_circular, w = distance),
+    
+    # Calculate the circular standard deviation (SD)
+    sd_bearing = sd.circular(bearing_circular, na.rm = TRUE),
+    
+    # # Circular standard deviation (SD) - there is no built-in weighted SD for circular
+    # # data, so we'll calculate SD without weighting
+    # sd_bearing = sd(circular(bearing, units = "degrees", template = "geographics"), na.rm = TRUE),
+    
+    # Calculate standard error (SE) for circular bearings
     se_bearing = sd_bearing / sqrt(n())
-  ) %>% 
-  mutate(num_species = c(1))
+  ) %>%
+  mutate(num_species = 1)  # Adding your additional column
+
+# Output the summary statistics
+print(summary_stats)
 
 
-lane_snapper_annual_movements_fig1 <-
+
+
+# make figure
+lane_snapper_annual_movements_fig1 <- 
   ggplot(data = lane_snapper_annual_movements, aes(x = year_pair, y = bearing)) +
-            geom_bar(stat = "identity", width = 1, color = "black", fill = "lightgrey") +
-            geom_hline(yintercept = summary_stats$mean_bearing, color = "red", linetype = "solid", linewidth = 3, label = "Mean") +
-            geom_hline(yintercept = summary_stats$mean_bearing + summary_stats$sd_bearing, color = "black", linetype = "dotted", linewidth = 1, label = "Mean + SD") +
-            geom_hline(yintercept = summary_stats$mean_bearing - summary_stats$sd_bearing, color = "black", linetype = "dotted", linewidth = 1, label = "Mean - SD") +
-            geom_hline(yintercept = summary_stats$mean_bearing + summary_stats$se_bearing, color = "green", linetype = "dashed", linewidth = 1, label = "Mean + SE") +
-            geom_hline(yintercept = summary_stats$mean_bearing - summary_stats$se_bearing, color = "green", linetype = "dashed", linewidth = 1, label = "Mean - SE") +
-            labs(x = "Year Pair", y = "Compass Bearing", title = "Lane Snapper gCOB Annual Movements") +
-            theme_minimal() +
-            theme(axis.text.x = element_text(angle = 45, hjust = 1),
-                  panel.grid.major = element_blank(),  # Remove major grid lines
-                  panel.grid.minor = element_blank()) +    # Remove minor grid lines
-            scale_y_continuous(breaks = c(0, 90, 180, 270, 360))
+  geom_bar(stat = "identity", width = 1,
+           color = "black",
+           # fill = "lightgrey",
+           aes(fill = year_pair)) +
   
+  # Add horizontal line for the mean bearing
+  geom_hline(yintercept = summary_stats$mean_bearing, color = "red", linetype = "solid", linewidth = 3) +
+  
+  # Secondary axis for distance moved in kilometers
+  geom_point(aes(y = (distance / 1000) / max(distance / 1000) * 360), color = "blue", size = 3) + # Add points to highlight year-to-year distances
+  
+  # Labels and theme adjustments
+  labs(x = "Year Pair",
+       y = "Compass Bearing (degrees)"
+       # title = "Lane Snapper gCOB Annual Movements"
+       ) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        panel.grid.major = element_blank(),  # Remove major grid lines
+        panel.grid.minor = element_blank(),  # Remove minor grid lines
+        text = element_text(family = "Times",
+                            size = 14),
+        plot.title = element_text(face = "bold"),
+        axis.title = element_text(size = 12,
+                                  face = "bold"),
+        axis.text = element_text(size = 10),
+        # legend.title = element_text(size = 12,
+        #                             face = "bold",
+        #                             hjust = 0.5),
+        # legend.text = element_text(size = 10),
+        legend.position = "none") + 
+  
+  # Primary y-axis for bearings and secondary y-axis for distance in kilometers
+  scale_y_continuous(
+    breaks = c(0, 90, 180, 270, 360),
+    sec.axis = sec_axis(~ . * max(lane_snapper_annual_movements$distance / 1000) / 360, name = "Distance Moved (km)")
+  ) +
+  
+  # fill the bars to match colors from gCOB figure
+  scale_fill_viridis_d(alpha = 0.7,
+                       name = "Years")
+
+
+# Plot the figure
+lane_snapper_annual_movements_fig1
+
+
 # Save the combined plot
-ggsave("AFS_figures/lane_snapper_gCOBs_annual_movements.png", lane_snapper_annual_movements_fig1, height = 3, width = 6)
+ggsave("AFS_figures/lane_snapper_gCOBs_annual_movements_v2.5.png", lane_snapper_annual_movements_fig1, height = 3, width = 5)
 
 
 ```
@@ -538,57 +771,71 @@ lane_snapper_windrose_Fig1 <- ggplot(data = blank_data, aes(x = bearing, y = num
                                                      labels = c("0", "90", "180", "270"),
                                                      expand = c(0,0)) +
                                   theme_minimal() +
-                                  theme(axis.text.x = element_text(size = 16, face = "bold",
+                                  theme(axis.text.x = element_text(size = 24, face = "bold",
                                                                    margin = margin(t = 5),  # Add margin to avoid overlap with outer axis line
                                                                    vjust = 0.5, hjust = 0.5),  
-                                    axis.title.x = element_text(size = 12, face = "bold"),  # Bold x-axis label
+                                    # axis.title.x = element_text(size = 12, face = "bold"),  # Bold x-axis label
+                                    axis.title.x = element_blank(),
                                     axis.title.y = element_blank(),
                                     axis.text.y = element_blank(),
-                                    panel.grid.major.x = element_line(color = "gray", size = 1),
+                                    panel.grid.major.x = element_line(color = "gray", linewidth = 1),
                                     panel.grid.minor.x = element_blank(),
-                                    panel.grid.major.y = element_line(color = "gray", size = 0.5),
+                                    panel.grid.major.y = element_line(color = "gray", linewidth = 0.5),
                                     panel.grid.minor.y = element_blank(),
                                     panel.border = element_blank()
-                                  ) +
-                                  labs(x = "Compass Bearing",
-                                       y = "Number of Species")
+                                  )
+                                  # +
+                                  # labs(x = "Compass Bearing",
+                                  #      y = "Number of Species")
 
 
-# Save the combined plot
-ggsave("AFS_figures/lane_snapper_windrose_Fig1.png", lane_snapper_windrose_Fig1, height = 6, width = 6)
+lane_snapper_windrose_Fig1
+
+# Save the plot
+ggsave("AFS_figures/lane_snapper_windrose_Fig1_v2.2.png", lane_snapper_windrose_Fig1, height = 6, width = 6)
 
 
 
 
 # Create the blank wind rose plot
-ggplot(data = blank_data, aes(x = bearing, y = num_species)) +
-  geom_bar(stat = "identity", width = 1, color = "black", fill = "lightgrey") +
-  geom_bar(data = summary_stats, stat = "identity", aes(x = mean_bearing, y = num_species),
-           width = 8, fill = "red") +
-  coord_polar(theta = "x", start = 0, direction = 1) +  # adjust start to align 0 degrees at the top
-  scale_y_continuous(expand = c(0, 0),
-                     limits = c(0,1)) +
-  scale_x_continuous(breaks = c(0,90,180,270),
-                     labels = c("0", "90", "180", "270"),
-                     expand = c(0,0)) +
-  theme_minimal() +
-  theme(axis.text.x = element_text(size = 16, face = "bold",
-                                   margin = margin(t = 5),  # Add margin to avoid overlap with outer axis line
-                                   vjust = 0.5, hjust = 0.5),  
-    axis.text.y = element_text(size = 12),  # Optional: Adjust size of y-axis labels if needed
-    axis.title.x = element_text(size = 12, face = "bold"),  # Bold x-axis label
-    axis.title.y = element_text(size = 12, face = "bold"),  # Bold y-axis label
-    panel.grid.major.x = element_line(color = "gray", size = 1),
-    panel.grid.minor.x = element_blank(),
-    panel.grid.major.y = element_line(color = "gray", size = 0.5),
-    panel.grid.minor.y = element_blank(),
-    panel.border = element_blank()
-    # axis.line.y.right = element_blank()
-  ) +
-  labs(x = "Compass Bearing",      # Set x-axis label
-       y = "Number of Species",    # Set y-axis label
-       title = "Blank Wind Rose Plot with All Compass Directions")
-  # ggtitle("Blank Wind Rose Plot with All Compass Directions")
+blank_windrose <- ggplot(data = blank_data, aes(x = bearing, y = num_species)) +
+                      geom_bar(stat = "identity", width = 1, color = "black", fill = "lightgrey") +
+                      # geom_bar(data = summary_stats, stat = "identity", aes(x = mean_bearing, y = num_species),
+                      #          width = 8, fill = "red") +
+                      coord_polar(theta = "x", start = 0, direction = 1) +  # adjust start to align 0 degrees at the top
+                      scale_y_continuous(expand = c(0, 0),
+                                         limits = c(0,1)) +
+                      scale_x_continuous(breaks = c(0,90,180,270),
+                                         labels = c("0", "90", "180", "270"),
+                                         expand = c(0,0)) +
+                      theme_minimal() +
+                      theme(axis.text.x = element_text(size = 24, face = "bold",
+                                                       margin = margin(t = 5),  # Add margin to avoid overlap with outer axis line
+                                                       vjust = 0.5, hjust = 0.5),  
+                        # axis.text.y = element_text(size = 12),  # Optional: Adjust size of y-axis labels if needed
+                        axis.text.y = element_blank(),
+                        axis.title.x = element_text(size = 24, face = "bold"),  # Bold x-axis label
+                        # axis.title.y = element_text(size = 12, face = "bold"),  # Bold y-axis label
+                        axis.title.y = element_blank(),
+                        panel.grid.major.x = element_line(color = "gray", linewidth = 1),
+                        panel.grid.minor.x = element_blank(),
+                        panel.grid.major.y = element_line(color = "gray", linewidth = 0.5),
+                        panel.grid.minor.y = element_blank(),
+                        panel.border = element_blank(),
+                        legend.position = "none"
+                        # axis.line.y.right = element_blank()
+                      ) +
+                      labs(x = "",
+                           # x = "Compass Bearing",      # Set x-axis label
+                           # y = "Number of Species",   # Set y-axis label
+                           y = ""
+                           # title = "Blank Wind Rose Plot with All Compass Directions"
+                           )
+                      # ggtitle("Blank Wind Rose Plot with All Compass Directions")
+
+
+# Save the plot
+ggsave("AFS_figures/blank_windrose_plot_v1.png", blank_windrose, height = 6, width = 6)
 
 ```
 
@@ -604,16 +851,68 @@ std_error <- function(x) {
   sd(x, na.rm = TRUE) / sqrt(sum(!is.na(x)))
 }
 
-# Summarize gCOB data by species: calculate mean, SD, and SE for bearing and distance
+# # Summarize gCOB data by species: calculate mean, SD, and SE for bearing and distance
+# summarized_gCOBs <- annual_movement_results %>%
+#   group_by(species) %>%
+#   summarize(
+#     avg_bearing = mean(bearing, na.rm = TRUE),
+#     sd_bearing = sd(bearing, na.rm = TRUE),  # Standard deviation of bearing
+#     se_bearing = std_error(bearing),  # Standard error of bearing
+#     avg_distance = mean(distance, na.rm = TRUE),
+#     sd_distance = sd(distance, na.rm = TRUE),  # Standard deviation of distance
+#     se_distance = std_error(distance),  # Standard error of distance
+#     sample_size = n(),
+#     earliest_year = min(as.numeric(substring(year_pair, 1, 4)), na.rm = TRUE),
+#     latest_year = max(as.numeric(substring(year_pair, 6, 9)), na.rm = TRUE)
+#   ) %>%
+#   ungroup()
+
+
+# # Summarize gCOB data by species: calculate mean, SD, and SE for circular bearing and distance
+# summarized_gCOBs <- annual_movement_results %>%
+#   group_by(species) %>%
+#   summarize(
+#     # Calculate circular mean, SD, and SE for bearings
+#     avg_bearing = mean.circular(circular(bearing, units = "degrees"), na.rm = TRUE),
+#     sd_bearing = sd.circular(circular(bearing, units = "degrees"), na.rm = TRUE),
+#     se_bearing = sd_bearing / sqrt(length(na.omit(bearing))),  # SE for circular data
+# 
+#     # Calculate mean, SD, and SE for distance (linear data)
+#     avg_distance = mean(distance, na.rm = TRUE),
+#     sd_distance = sd(distance, na.rm = TRUE),  # Standard deviation of distance
+#     se_distance = std_error(distance),  # Standard error of distance
+# 
+#     # Additional summary statistics
+#     sample_size = n(),
+#     earliest_year = min(as.numeric(substring(year_pair, 1, 4)), na.rm = TRUE),
+#     latest_year = max(as.numeric(substring(year_pair, 6, 9)), na.rm = TRUE)
+#   ) %>%
+#   ungroup()
+
+
+# Summarize gCOB data by species: calculate weighted circular mean, SD, and SE for bearings
 summarized_gCOBs <- annual_movement_results %>%
+  # Convert bearings to circular data
+  mutate(bearing_circular = circular(bearing, units = "degrees", template = "geographics")) %>% 
   group_by(species) %>%
   summarize(
-    avg_bearing = mean(bearing, na.rm = TRUE),
-    sd_bearing = sd(bearing, na.rm = TRUE),  # Standard deviation of bearing
-    se_bearing = std_error(bearing),  # Standard error of bearing
+    # Calculate weighted circular mean using 'distance' as weights
+          # add 360 to ensure all values are positive
+          # modulo operation (%% 360) ensures than any angles that exceed 360 wrap around correctly (e.g., 370 becomes 10)
+    avg_bearing = ((weighted.mean.circular(bearing_circular, w = distance, na.rm = TRUE) + 360) %% 360),
+    
+    # Circular standard deviation (SD) without weighting (since no weighted SD available)
+    sd_bearing = sd.circular(bearing_circular, na.rm = TRUE),
+    
+    # Circular standard error (SE)
+    se_bearing = sd_bearing / sqrt(length(na.omit(bearing))),
+    
+    # Calculate mean, SD, and SE for distance (linear data)
     avg_distance = mean(distance, na.rm = TRUE),
-    sd_distance = sd(distance, na.rm = TRUE),  # Standard deviation of distance
-    se_distance = std_error(distance),  # Standard error of distance
+    sd_distance = sd(distance, na.rm = TRUE),
+    se_distance = std_error(distance),
+    
+    # Additional summary statistics
     sample_size = n(),
     earliest_year = min(as.numeric(substring(year_pair, 1, 4)), na.rm = TRUE),
     latest_year = max(as.numeric(substring(year_pair, 6, 9)), na.rm = TRUE)
@@ -687,7 +986,8 @@ GoM_20102022_fall_windroses_fig1 <-
       panel.grid.major.y = element_line(color = "gray", size = 0.2),
       panel.grid.minor.y = element_blank(),
       panel.border = element_blank(),
-      legend.position = "bottom",
+      # legend.position = "bottom",   # for v1
+      legend.position = "right",
       legend.title = element_blank(),
       strip.text.x = element_text(size = 16, face = "bold", vjust = 0.5, hjust = 0.5)
       # axis.line.y.right = element_blank()
@@ -695,12 +995,16 @@ GoM_20102022_fall_windroses_fig1 <-
   labs(x = "Compass Bearing",      # Set x-axis label
        y = "Number of Species",    # Set y-axis label
        title = "GoM 2010-2022 Fall") +
-  facet_wrap(~climate_zone, scales = "free_y", nrow = 3)  # Facet by climate zone with free y-scales
+  facet_wrap(~climate_zone, scales = "free_y",
+             # nrow = 3,   # for v1
+             ncol = 3)  # Facet by climate zone with free y-scales
 
 GoM_20102022_fall_windroses_fig1
 
 # Save the combined plot
-ggsave("AFS_figures/GoM_20102022_fall_windroses_fig1.png", GoM_20102022_fall_windroses_fig1, height = 11, width = 6)
+ggsave("AFS_figures/GoM_20102022_fall_windroses_fig1_v3.png", GoM_20102022_fall_windroses_fig1,
+       # height = 11, width = 6,
+       height = 4, width = 11)
 
 
 ```
