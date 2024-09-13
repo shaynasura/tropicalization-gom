@@ -56,6 +56,7 @@ library(tools)
 
 library(sf)
 library(geosphere)  # for calculating change in bearing and distances for gCOBs
+library(circular)   # for calculating means from circular data (e.g., bearings) and weighting them by distance
 
 
 # for maps with polygons for countries and states
@@ -313,6 +314,160 @@ anim_save("AFS_figures/allGoM_yr2010_2022_m678_stations_animated_map1.gif", anim
 
 
 
+# check water temperature values and remove unlikely ones
+```{r}
+
+weird_temp_surf <- station_data %>% 
+  filter(TEMP_SSURF < 20 | TEMP_SSURF > 36)
+
+weird_high_temp_surf <- station_data %>% 
+  filter(TEMP_SSURF > 35)
+
+
+
+```
+
+
+# plot of average temperature over time
+```{r}
+temp_surface <- station_data %>% 
+  mutate(
+      # Replace TEMP_SSURF values greater than 15 with NA
+      TEMP_SSURF = ifelse(TEMP_SSURF < 15, NA, TEMP_SSURF)
+      # # Replace TEMP_SAIR values less than 40 with NA
+      # TEMP_SAIR = ifelse(TEMP_SAIR > 40, NA, TEMP_SAIR),
+      # TEMP_SAIR = ifelse(TEMP_SAIR < 11, NA, TEMP_SAIR)
+    ) %>%
+  group_by(YR) %>% 
+  summarize(mean_TEMP_SSURF = mean(TEMP_SSURF, na.rm = TRUE),
+            sd_TEMP_SSURF = sd(TEMP_SSURF, na.rm = TRUE),
+            n_TEMP_SSURF = sum(!is.na(TEMP_SSURF)),  # Count non-NA values
+            se_TEMP_SSURF = sd(TEMP_SSURF, na.rm = TRUE) / sqrt(sum(!is.na(TEMP_SSURF))),  # Standard Error
+            mean_TEMP_BOT = mean(TEMP_BOT, na.rm = TRUE),
+            sd_TEMP_BOT = sd(TEMP_BOT, na.rm = TRUE),
+            n_TEMP_BOT = sum(!is.na(TEMP_BOT)),  # Count non-NA values
+            se_TEMP_BOT = sd(TEMP_BOT, na.rm = TRUE) / sqrt(sum(!is.na(TEMP_BOT))),  # Standard Error
+            mean_TEMP_SAIR = mean(TEMP_SAIR, na.rm = TRUE),
+            sd_TEMP_SAIR = sd(TEMP_SAIR, na.rm = TRUE),
+            n_TEMP_SAIR = sum(!is.na(TEMP_SAIR)),  # Count non-NA values
+            se_TEMP_SAIR = sd(TEMP_SAIR, na.rm = TRUE) / sqrt(sum(!is.na(TEMP_SAIR))))  # Standard Error
+
+
+
+# make figure
+annual_temp_fig <- ggplot(data = temp_surface) +
+                      # Surface temperature
+                      geom_point(aes(x = YR, y = mean_TEMP_SSURF, color = "Surface Temp"), size = 5, shape = 18) +
+                      geom_errorbar(aes(x = YR, ymin = mean_TEMP_SSURF - se_TEMP_SSURF, ymax = mean_TEMP_SSURF + se_TEMP_SSURF, color = "Surface Temp"), width = 0.2) +
+                      
+                      # Bottom temperature
+                      geom_point(aes(x = YR, y = mean_TEMP_BOT, color = "Bottom Temp"), size = 3, shape = 19) +
+                      geom_errorbar(aes(x = YR, ymin = mean_TEMP_BOT - se_TEMP_BOT, ymax = mean_TEMP_BOT + se_TEMP_BOT, color = "Bottom Temp"), width = 0.2) +
+                    
+                      # Customization
+                      labs(title = "entire GoM 2010-2022 summer",
+                           x = "Year", y = "Temperature (°C)") +
+                      scale_color_manual(name = "Temperature Type", 
+                                         values = c("Surface Temp" = "lightblue", 
+                                                    "Bottom Temp" = "darkblue"),
+                                         breaks = c("Surface Temp", "Bottom Temp")) +
+                      scale_x_continuous(breaks = seq(2010,2022, by = 2)) +
+                      theme_classic() +
+                      theme(text = element_text(family = "Times", size = 14),
+                            plot.title = element_text(face = "bold", hjust = 0.5),
+                            axis.title = element_text(size = 16, face = "bold"),
+                            legend.title = element_blank(),
+                            # legend.position = "bottom",
+                            legend.position = "right")
+
+annual_temp_fig
+
+# Save the plot
+ggsave("AFS_figures/allGoM_yr2010_2022_m678_annual_temp_fig1.png", annual_temp_fig, height = 4, width = 4)
+ggsave("AFS_figures/allGoM_yr2010_2022_m678_annual_temp_fig1_v1.png", annual_temp_fig, height = 3, width = 5)
+
+
+```
+
+
+
+# maps of station water temperature - animated
+```{r}
+
+# # Ensure data is in the correct CRS and convert to sf object
+# station_data_sf <- st_as_sf(station_data, 
+#                             coords = c("DECSLON", "DECSLAT"), 
+#                             crs = 4269)
+
+
+
+
+# Plot the base map with station points
+temp_surface_maps <- ggplot() +
+  geom_sf(data = world_base_map_sf, color = "black", fill = "white") +
+  geom_sf(data = usa_state_borders_sf, color = "black", fill = "white") +
+  geom_sf(data = station_data %>% filter(!is.na(TEMP_SSURF)),
+          aes(geometry = geometry, fill = TEMP_SSURF),  # Use geometry for plotting
+          size = 1.1,
+          shape = 21,
+          color = "darkorange4",
+          # fill = "darkorange4",
+          stroke = 0.05) +    # width of border line
+  coord_sf(xlim = c(-97.7, -79.9), ylim = c(24, 31), crs = st_crs(4269)) +
+  theme(panel.background = element_rect(fill = c("#CFEFFF")),
+        panel.border = element_rect(fill = NA, color = "black"),
+        text = element_text(family = "Times", size = 12),
+        plot.title = element_text(face = "bold", hjust = 0.5),
+        axis.title = element_text(size = 12, face = "bold"),
+        legend.title = element_text(size = 12, face = "bold", hjust = 0.5),
+        legend.text = element_text(size = 10),
+        # legend.position = "none"
+        ) +
+  labs(title = "Surface Water Temperature for entire GoM\n2010 - 2022 June, July, August",
+       x = "Longitude", y = "Latitude")
+
+
+# Preview the map
+print(temp_surface_maps)
+
+
+# Animate the map
+animation <- temp_surface_maps +
+    transition_time(YR) +
+    ggtitle(label = NULL,  # No main title, just a subtitle
+            subtitle = bquote(.(paste0("entire GoM Summer 2010-2022\nYear: {frame_time}\nFrame {frame} of {nframes}")))) +
+    shadow_mark(alpha = 0.1,
+                # color = "darkgray",
+                size = 0.5) +
+    scale_fill_viridis_c(option = "plasma",
+                         limits = c(19,36),
+                         breaks = seq(19,36, by = 2),
+                         labels = seq(19,36, by = 2),
+                         name = "Surface\nTemperature")
+
+
+num_years <- max(station_data$YR - min(station_data$YR)) + 1
+animated_temp_surface_maps <- animate(animation,
+                                 nframes = num_years,
+                                 fps = 2,
+                                 duration = (num_years + 5)/2,
+                                 end_pause = 5,
+                                 height = 4,
+                                 width = 6,
+                                 units = "in",
+                                 res = 300)
+
+animated_temp_surface_maps
+
+anim_save("AFS_figures/allGoM_yr2010_2022_m678_temp_surface_anim_map1.gif", animation = animated_temp_surface_maps)
+
+
+```
+
+
+
+
+
 
 
 
@@ -401,16 +556,29 @@ std_error <- function(x) {
   sd(x, na.rm = TRUE) / sqrt(sum(!is.na(x)))
 }
 
-# Summarize gCOB data by species: calculate mean, SD, and SE for bearing and distance
+# Summarize gCOB data by species: calculate weighted circular mean, SD, and SE for bearings
 summarized_gCOBs <- annual_movement_results %>%
+  # Convert bearings to circular data
+  mutate(bearing_circular = circular(bearing, units = "degrees", template = "geographics")) %>% 
   group_by(species) %>%
   summarize(
-    avg_bearing = mean(bearing, na.rm = TRUE),
-    sd_bearing = sd(bearing, na.rm = TRUE),  # Standard deviation of bearing
-    se_bearing = std_error(bearing),  # Standard error of bearing
+    # Calculate weighted circular mean using 'distance' as weights
+          # add 360 to ensure all values are positive
+          # modulo operation (%% 360) ensures than any angles that exceed 360 wrap around correctly (e.g., 370 becomes 10)
+    avg_bearing = ((weighted.mean.circular(bearing_circular, w = distance, na.rm = TRUE) + 360) %% 360),
+    
+    # Circular standard deviation (SD) without weighting (since no weighted SD available)
+    sd_bearing = sd.circular(bearing_circular, na.rm = TRUE),
+    
+    # Circular standard error (SE)
+    se_bearing = sd_bearing / sqrt(length(na.omit(bearing))),
+    
+    # Calculate mean, SD, and SE for distance (linear data)
     avg_distance = mean(distance, na.rm = TRUE),
-    sd_distance = sd(distance, na.rm = TRUE),  # Standard deviation of distance
-    se_distance = std_error(distance),  # Standard error of distance
+    sd_distance = sd(distance, na.rm = TRUE),
+    se_distance = std_error(distance),
+    
+    # Additional summary statistics
     sample_size = n(),
     earliest_year = min(as.numeric(substring(year_pair, 1, 4)), na.rm = TRUE),
     latest_year = max(as.numeric(substring(year_pair, 6, 9)), na.rm = TRUE)
@@ -484,6 +652,7 @@ GoM_20102022_summer_windroses_fig1 <-
       panel.grid.major.y = element_line(color = "gray", size = 0.2),
       panel.grid.minor.y = element_blank(),
       panel.border = element_blank(),
+      panel.spacing = unit(1, units = "cm"),
       # legend.position = "bottom",
       legend.position = "right",
       legend.title = element_blank(),
@@ -500,9 +669,9 @@ GoM_20102022_summer_windroses_fig1 <-
 GoM_20102022_summer_windroses_fig1
 
 # Save the combined plot
-ggsave("AFS_figures/GoM_20102022_summer_windroses_fig1_v2.png", GoM_20102022_summer_windroses_fig1,
+ggsave("AFS_figures/GoM_20102022_summer_windroses_fig1_v3.png", GoM_20102022_summer_windroses_fig1,
        # height = 11, width = 6,
-       height = 4, width = 11)
+       height = 4, width = 12)
 
 
 ```
