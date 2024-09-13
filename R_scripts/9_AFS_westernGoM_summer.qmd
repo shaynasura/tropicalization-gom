@@ -187,6 +187,21 @@ base_map <- ggplot() +
 #plot base_map
 base_map
 
+
+# map of GoM for AFS
+AFS_base_map <- ggplot() +
+  geom_sf(data = world_base_map_sf, color = "black", fill = "white") +
+  geom_sf(data = usa_state_borders_sf, color = "black", fill = "white") +
+  coord_sf(xlim = c(-97.7, -79.9), ylim = c(18, 31), crs = st_crs(4269)) +
+  theme(panel.background = element_rect(fill = c("#CFEFFF")),
+        panel.border = element_rect(fill = NA, color = "black")) +
+  labs(x = "Longitude", y = "Latitude")
+
+AFS_base_map
+
+# Save the map
+ggsave("AFS_figures/blank_GoM_map_v1.png", AFS_base_map, height = 3.5, width = 5)
+
 # # Add point geometries to the base map
 # map_with_points <- base_map +
 #   geom_sf(data = bio_data_clean_yr1983_2022_m678_western, color = "red", size = 1.5)
